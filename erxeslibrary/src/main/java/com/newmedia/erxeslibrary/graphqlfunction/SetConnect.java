@@ -50,9 +50,6 @@ public class SetConnect {
                 Helper.load_uiOptions(response.data().messengerConnect().uiOptions());
                 Log.d(TAG,response.data().messengerConnect().messengerData().toString());
                 Helper.load_messengerData(response.data().messengerConnect().messengerData());
-
-
-
                 ER.notefyAll(ReturnType.LOGIN_SUCCESS, null, null);
             } else {
 

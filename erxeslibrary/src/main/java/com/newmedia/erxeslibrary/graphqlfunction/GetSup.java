@@ -15,6 +15,8 @@ import com.newmedia.erxeslibrary.model.User;
 
 import javax.annotation.Nonnull;
 
+import io.realm.Realm;
+
 public class GetSup {
     final static String TAG = "GETSUP";
     private ErxesRequest ER;
@@ -33,10 +35,11 @@ public class GetSup {
         @Override
         public void onResponse(@Nonnull Response<MessengerSupportersQuery.Data> response) {
             if(!response.hasErrors()) {
-
-                DB.save(User.convert(response.data().messengerSupporters()));
-
-                ER.notefyAll(ReturnType.GetSupporters,null ,null);
+                if(response.data().messengerSupporters()!=null) {
+                    DB.save(User.convert(response.data().messengerSupporters()));
+//                    User.convert(response.data().messengerSupporters());
+                    ER.notefyAll(ReturnType.GetSupporters, null, null);
+                }
             }
             else{
                 Log.d(TAG, "errors " + response.errors().toString());

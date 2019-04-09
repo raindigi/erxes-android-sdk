@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.newmedia.erxeslibrary.configuration.Messengerdata;
+import com.newmedia.erxeslibrary.configuration.MessengerdataIntegration;
 
 /**
  * Created by lol on 3/23/16.
@@ -37,6 +39,10 @@ public class DataManager {
         this._context = context;
         pref = _context.getSharedPreferences(PREFER_NAME, PRIVATE_MODE);
         editor = pref.edit();
+    }
+    public void clear(){
+        editor.clear();
+        editor.commit();
     }
     public void setData(String key, String data) {
         // Storing login value as TRUE
@@ -76,7 +82,22 @@ public class DataManager {
             try {
                 return gson.fromJson(a,Messengerdata.class);
             }
-            catch (Exception e){}
+            catch (JsonSyntaxException e){e.printStackTrace();}
+
+        return null;
+    }
+    public void setMessengerDataIntegration(String data){
+        editor.putString("messageintegration", data);
+        editor.commit();
+    }
+    public MessengerdataIntegration getMessengerIntegration(){
+        String a = pref.getString("messageintegration", null);
+        Gson gson = new Gson();
+        if( a != null )
+            try {
+                return gson.fromJson(a,MessengerdataIntegration.class);
+            }
+            catch (JsonSyntaxException e){e.printStackTrace();}
 
         return null;
     }

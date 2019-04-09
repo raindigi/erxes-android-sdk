@@ -30,6 +30,10 @@ public class GetKnowledge {
             ER.apolloClient.query(FaqGetQuery.builder().topicId(config.messengerdata.knowledgeBaseTopicId).build())
                     .enqueue(request);
         }
+        else if(config.messengerdataInteg != null && config.messengerdataInteg.knowledgeBaseTopicId != null){
+            ER.apolloClient.query(FaqGetQuery.builder().topicId(config.messengerdata.knowledgeBaseTopicId).build())
+                    .enqueue(request);
+        }
 
 
     }
@@ -38,9 +42,11 @@ public class GetKnowledge {
         @Override
         public void onResponse(@Nonnull Response<FaqGetQuery.Data> response) {
             if(!response.hasErrors()) {
-                KnowledgeBaseTopic a = new KnowledgeBaseTopic();
-                a.convert(response.data());
-                DB.save(a);
+                if(response.data().knowledgeBaseTopicsDetail()!=null) {
+                    KnowledgeBaseTopic a = new KnowledgeBaseTopic();
+                    a.convert(response.data());
+                    DB.save(a);
+                }
 //              ER.notefyAll(ReturnType.INTEGRATION_CHANGED,null ,null);
             }
             else{

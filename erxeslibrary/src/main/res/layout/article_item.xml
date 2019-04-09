@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_marginTop="8dp"
     android:layout_height="wrap_content">
-
+    <ImageView
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/clipboard"/>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_marginRight="20dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
     <TextView
         android:id="@+id/title"
         android:layout_width="match_parent"
@@ -18,4 +28,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Эрхэт програмыг ашиглах тухай гарын авлагыг https://erkhet.biz/hand-book/ холбоосоор орж, ашиглах боломжтой." />
+    </LinearLayout>
 </LinearLayout>

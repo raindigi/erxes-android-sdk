@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
@@ -65,6 +66,14 @@ public class Helper {
         dataManager.setMessengerData(js.toString());
         Gson gson = new Gson();
         config.messengerdata = gson.fromJson(js.toString(),Messengerdata.class);
+
+    }
+    static public void load_messengerDataIntegration(JSONObject js){
+        if(js == null)
+            return;
+        dataManager.setMessengerDataIntegration(js.toString());
+        Gson gson = new Gson();
+        config.messengerdataInteg = gson.fromJson(js.toString(),MessengerdataIntegration.class);
 
     }
 

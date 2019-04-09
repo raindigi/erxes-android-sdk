@@ -36,7 +36,7 @@ public class GetInteg {
                 try {
                     config.changeLanguage(response.data().getMessengerIntegration().languageCode());
                     Helper.load_uiOptions(response.data().getMessengerIntegration().uiOptions());
-                    Helper.load_messengerData( response.data().getMessengerIntegration().messengerData());
+                    Helper.load_messengerDataIntegration( response.data().getMessengerIntegration().messengerData());
                 }catch (Exception e){}
                 ER.notefyAll(ReturnType.INTEGRATION_CHANGED,null ,null);
             }

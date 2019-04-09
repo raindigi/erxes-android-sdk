@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.newmedia.erxeslibrary.DataManager;
 import com.newmedia.erxeslibrary.ui.login.ErxesActivity;
@@ -15,7 +16,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-
+import io.realm.Realm;
 
 
 public class Config implements ErxesObserver{
@@ -28,6 +29,7 @@ public class Config implements ErxesObserver{
     private String color;
     public String language,wallpaper;
     public Messengerdata messengerdata;
+    public MessengerdataIntegration messengerdataInteg;
     public int colorCode;
     public String conversationId=null;
     public String brandCode;
@@ -114,24 +116,42 @@ public class Config implements ErxesObserver{
         }
     }
     public String now() {
-
-
         Date date = new Date();
-
         SimpleDateFormat format =
                 new SimpleDateFormat("yyyy оны MM сарын d, HH:mm");
         SimpleDateFormat format2 =
                 new SimpleDateFormat("MMM dd / yyyy HH:mm");
-
-
         if(this.language.equalsIgnoreCase("en")){
             return format2.format(date);
         }
         else {
             return format.format(date);
         }
+    }
+    public String full_date(String createDate_s) {
+
+        Long createDate = null;
+        try {
+            createDate =Long.valueOf(createDate_s);
+        }
+        catch (NumberFormatException e){
+            return "";
+        }
 
 
+        Date date = new Date();
+        date.setTime(createDate);
+
+        SimpleDateFormat format =
+                new SimpleDateFormat("yyyy оны MM сарын d, HH:mm");
+        SimpleDateFormat format2 =
+                new SimpleDateFormat("MMM dd / yyyy HH:mm");
+        if(this.language.equalsIgnoreCase("en")){
+            return format2.format(date);
+        }
+        else {
+            return format.format(date);
+        }
     }
     @Override
     public void notify(int returnType, String conversationId, String message) {
@@ -162,9 +182,19 @@ public class Config implements ErxesObserver{
         HOST_3300 = ip_3300;
         HOST_UPLOAD = ip_upload_file;
         this.brandCode  = brandcode;
+        if(dataManager.getDataS("BRANDCODE")!=null&&!dataManager.getDataS("BRANDCODE").equalsIgnoreCase(brandcode)){
+            Log.d("clear","clear"+dataManager.getDataS("BRANDCODE")+""+brandcode);
+            dataManager.clear();
+            Realm a= DB.getDB();
+            a.beginTransaction();
+            a.deleteAll();
+            a.commitTransaction();
+            a.close();
+        }
         dataManager.setData("HOST3100",HOST_3100);
         dataManager.setData("HOST3300",HOST_3300);
         dataManager.setData("HOSTUPLOAD",HOST_UPLOAD);
+
         dataManager.setData("BRANDCODE",brandcode);
         LoadDefaultValues();
         erxesRequest.set_client();
@@ -197,6 +227,7 @@ public class Config implements ErxesObserver{
         customerId = dataManager.getDataS(DataManager.customerId);
         integrationId = dataManager.getDataS(DataManager.integrationId);
         messengerdata = dataManager.getMessenger();
+        messengerdataInteg = dataManager.getMessengerIntegration();
         color= dataManager.getDataS(DataManager.color);
         if(color !=null)
             colorCode = Color.parseColor(color);
@@ -205,7 +236,6 @@ public class Config implements ErxesObserver{
         wallpaper= dataManager.getDataS("wallpaper");
         language = dataManager.getDataS(DataManager.language);
         changeLanguage(language);
-
     }
 
     public boolean isLoggedIn(){

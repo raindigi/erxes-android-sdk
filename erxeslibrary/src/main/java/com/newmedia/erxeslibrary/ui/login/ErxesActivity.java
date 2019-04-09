@@ -85,6 +85,12 @@ public class ErxesActivity extends AppCompatActivity implements ErxesObserver {
 
         Drawable drawable =  this.findViewById(R.id.selector).getBackground();
         drawable.setColorFilter(config.colorCode, PorterDuff.Mode.SRC_ATOP);
+        if(email.getVisibility() == View.VISIBLE){
+            email_click(null);
+        }
+        else{
+            sms_click(null);
+        }
 
     }
     public void email_click(View v){
@@ -95,7 +101,7 @@ public class ErxesActivity extends AppCompatActivity implements ErxesObserver {
         email_button.setTextColor(Color.WHITE);
         changeBitmapColor( mailzurag, Color.WHITE);
         sms_button.setTextColor(config.colorCode);
-        ((CardView)v).setCardBackgroundColor(config.colorCode);
+        mailgroup.setCardBackgroundColor(config.colorCode);
         changeBitmapColor(phonezurag, config.colorCode);
 
     }
@@ -112,7 +118,7 @@ public class ErxesActivity extends AppCompatActivity implements ErxesObserver {
         changeBitmapColor( phonezurag, Color.WHITE);
 
         email_button.setTextColor(config.colorCode);
-        ((CardView)v).setCardBackgroundColor(config.colorCode);
+        smsgroup.setCardBackgroundColor(config.colorCode);
         changeBitmapColor( mailzurag, config.colorCode);
 
     }

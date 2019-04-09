@@ -2,6 +2,7 @@ package com.newmedia.erxeslibrary.ui.message;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -9,6 +10,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.widget.CircularProgressDrawable;
 import android.support.v7.widget.RecyclerView;
 import android.text.Html;
+import android.text.Spanned;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +21,9 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.transition.Transition;
 import com.newmedia.erxeslibrary.configuration.Config;
 import com.newmedia.erxeslibrary.model.*;
 import com.newmedia.erxeslibrary.R;
@@ -121,7 +126,12 @@ public class MessageListAdapter extends RecyclerView.Adapter {
 
         ConversationMessage message ;
 
-        if(config.messengerdata.getWelcome(config.language)!=null && (position == 0)){
+        if((position == 0) && config.messengerdataInteg!=null && config.messengerdataInteg.getMessages(config.language)!=null){
+            message = new ConversationMessage();
+            message.content = (config.messengerdataInteg.getMessages(config.language).welcome);
+            message.createdAt = ("");
+        }
+        else if((position == 0) && config.messengerdata.getWelcome(config.language)!=null){
             message = new ConversationMessage();
             message.content = (config.messengerdata.getWelcome(config.language));
             message.createdAt = ("");
@@ -223,11 +233,21 @@ public class MessageListAdapter extends RecyclerView.Adapter {
 
         void bind(ConversationMessage message) {
 //            messageText.loadData(message.content,"text/html","utf-8");
-            messageText.setText(Html.fromHtml(message.content.replace("\n","")));;
+//            messageText.setText(Html.fromHtml(message.content.replace("\n","")));;
 //            messageText.setText(message.content);;
+
+
+            Spanned htmlDescription = Html.fromHtml(message.content);
+            String descriptionWithOutExtraSpace = htmlDescription.toString().trim();
+            messageText.setText(descriptionWithOutExtraSpace);
+            if (TextUtils.isEmpty(htmlDescription.subSequence(0, descriptionWithOutExtraSpace.length()))) {
+                messageText.setVisibility(View.GONE);
+            } else {
+                messageText.setVisibility(View.VISIBLE);
+                messageText.setText(descriptionWithOutExtraSpace);
+            }
             timeText.setText(config.Message_datetime(message.createdAt));
 
-/**/
             if(message.user!=null){
 
                 Glide.with(context).load(message.user.avatar).placeholder(R.drawable.avatar)
@@ -273,7 +293,7 @@ public class MessageListAdapter extends RecyclerView.Adapter {
             messageText.setText(Html.fromHtml(message.content));;
         }
     }
-    private void draw_file(JSONObject o,ImageView inputImage,View fileview,TextView filename){
+    private void draw_file(JSONObject o,final ImageView inputImage,View fileview,TextView filename){
 
 
         try{
@@ -308,12 +328,28 @@ public class MessageListAdapter extends RecyclerView.Adapter {
                 inputImage.getLayoutParams().width = pixels;
 //                inputImage.getLayoutParams().height = pixels;
                 inputImage.requestLayout();
+                Glide.with(context)
+                        .asBitmap()
+                        .load(url)
+                        .into(new SimpleTarget<Bitmap>() {
+                            @Override
+                            public void onResourceReady(final Bitmap resource, Transition<? super Bitmap> transition) {
+                                inputImage.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
 
+                                        ((MessageActivity)context).zoomImageFromThumb(inputImage,resource);
+                                    }
+                                });
+                            }
+                        });
                 Glide.with(context).load(url).placeholder(circularProgressDrawable)
                         .diskCacheStrategy(DiskCacheStrategy.ALL).override(pixels,Target.SIZE_ORIGINAL)
                         .into(inputImage);
                 fileview.setOnClickListener(null);
                 filename.setVisibility(View.GONE);
+
+
             }
             else if(type.contains("application/pdf")){
                 inputImage.setImageResource(R.drawable.filepdf);
