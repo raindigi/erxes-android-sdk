@@ -1,8 +1,8 @@
 
-mutation MessengerConnect($brandCode: String!, $email: String!, $phone: String!,$isUser:Boolean!){
+mutation MessengerConnect($brandCode: String!, $email: String!, $phone: String!,$isUser:Boolean!,$deviceToken:String){
     messengerConnect (brandCode: $brandCode,
     email: $email,
-    phone: $phone,isUser:$isUser){
+    phone: $phone,isUser:$isUser,deviceToken:$deviceToken){
         integrationId
         uiOptions
         languageCode
