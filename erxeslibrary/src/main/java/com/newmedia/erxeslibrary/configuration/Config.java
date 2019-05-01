@@ -21,6 +21,7 @@ import io.realm.Realm;
 
 public class Config implements ErxesObserver{
 
+    public String token="";
     public String HOST_3100="";
     public String HOST_3300="";
     public String HOST_UPLOAD="";
@@ -177,11 +178,12 @@ public class Config implements ErxesObserver{
         LoadDefaultValues();
     }
 
-    private void Init(String brandcode, String ip_3100,String ip_3300,String ip_upload_file){
+    private void Init(String brandcode, String ip_3100,String ip_3300,String ip_upload_file,String firebaseToken){
         HOST_3100 = ip_3100;
         HOST_3300 = ip_3300;
         HOST_UPLOAD = ip_upload_file;
         this.brandCode  = brandcode;
+        this.token = firebaseToken;
         if(dataManager.getDataS("BRANDCODE")!=null&&!dataManager.getDataS("BRANDCODE").equalsIgnoreCase(brandcode)){
             Log.d("clear","clear"+dataManager.getDataS("BRANDCODE")+""+brandcode);
             dataManager.clear();
@@ -191,6 +193,7 @@ public class Config implements ErxesObserver{
             a.commitTransaction();
             a.close();
         }
+        dataManager.setData("token",firebaseToken);
         dataManager.setData("HOST3100",HOST_3100);
         dataManager.setData("HOST3300",HOST_3300);
         dataManager.setData("HOSTUPLOAD",HOST_UPLOAD);
@@ -282,6 +285,13 @@ public class Config implements ErxesObserver{
         private String apiHost;
         private String subscriptionHost;
         private String uploadHost;
+        private String token;
+
+        public Builder setToken(String token) {
+            this.token = token;
+            return this;
+        }
+
         public Builder(@NonNull String brand) {
 
             this.brand = brand;
@@ -301,7 +311,7 @@ public class Config implements ErxesObserver{
         }
         public Config build(Context context1)	{
             Config t = Config.getInstance(context1);
-            t.Init(this.brand,this.apiHost,this.subscriptionHost,this.uploadHost);
+            t.Init(this.brand,this.apiHost,this.subscriptionHost,this.uploadHost,token);
             return t;
         }
     }

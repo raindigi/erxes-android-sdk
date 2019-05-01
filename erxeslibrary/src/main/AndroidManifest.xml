@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application>
+
         <activity
             android:name=".ui.faq.FaqDetailActivity"
             android:theme="@style/Theme_erxes_dialog"></activity>

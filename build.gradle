@@ -17,6 +17,8 @@ buildscript {
         classpath 'com.apollographql.apollo:apollo-gradle-plugin:1.0.0-alpha5'
         classpath "io.realm:realm-gradle-plugin:5.1.0"
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1' // Add this line
+        classpath 'com.google.gms:google-services:4.2.0'  // Google Services plugin
+
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }

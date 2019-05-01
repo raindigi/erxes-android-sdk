@@ -1,4 +1,4 @@
-package com.newmedia.erxeslibrary.configuration;
+package io.erxes.main;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -148,7 +148,7 @@ public class PushNotification extends FirebaseMessagingService {
                 .setContentIntent(pendingIntent);
 
         NotificationManager notificationManager =
-            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         // Since android Oreo notification channel is needed.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

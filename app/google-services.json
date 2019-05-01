@@ -1,0 +1,93 @@
+{
+  "project_info": {
+    "project_number": "195249652684",
+    "firebase_url": "https://erxes-android.firebaseio.com",
+    "project_id": "erxes-android",
+    "storage_bucket": "erxes-android.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195249652684:android:5d89d2bb8480b635",
+        "android_client_info": {
+          "package_name": "io.erxes.erxes_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "195249652684-ofri8d0osj425oijl1mnt3rerkcgb8q8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.erxes.erxes_android",
+            "certificate_hash": "2c934397eca357be37ba610fffdc71fc120493bb"
+          }
+        },
+        {
+          "client_id": "195249652684-7d84n6e00tr52etgmaggpr9dkhcqj2o9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.erxes.erxes_android",
+            "certificate_hash": "b1f7ada91391caea60089b7ec3e491bf8ae53b92"
+          }
+        },
+        {
+          "client_id": "195249652684-5c0869osqvh5prnhj532kdog1k100kuk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLsN5AwSlgcyW9cNtRxUMVe3nXiJHl4hY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "195249652684-5c0869osqvh5prnhj532kdog1k100kuk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195249652684:android:f9e4e872e4b78574",
+        "android_client_info": {
+          "package_name": "io.erxes.main"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "195249652684-ggkrn7ggppdbk9imffp60iohq9uefrgb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.erxes.main",
+            "certificate_hash": "e2efbeda2005f0e05278f877cbcbb31a84630b3f"
+          }
+        },
+        {
+          "client_id": "195249652684-5c0869osqvh5prnhj532kdog1k100kuk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLsN5AwSlgcyW9cNtRxUMVe3nXiJHl4hY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "195249652684-5c0869osqvh5prnhj532kdog1k100kuk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

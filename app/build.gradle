@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.apollographql.android'
+ // Google Play services Gradle plugin
 
 android {
     compileSdkVersion 26
@@ -34,5 +35,10 @@ dependencies {
 //    androidTestImplementation 'com.android.support.test:rules:1.0.2'
 
 
+    implementation 'com.google.firebase:firebase-messaging:17.6.0'
+    implementation 'com.google.firebase:firebase-core:16.0.1'
+    implementation 'com.google.gms:google-services:4.2.0'
+
     implementation project(':erxeslibrary')
 }
+apply plugin: 'com.google.gms.google-services'

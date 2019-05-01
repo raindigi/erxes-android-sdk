@@ -28,11 +28,13 @@ public class SetConnect {
         dataManager = DataManager.getInstance(context);
     }
     public void run(String email,String phone,boolean isUser){
+
         ER.apolloClient.mutate(MessengerConnectMutation.builder()
                 .brandCode(config.brandCode)
                 .email(email)
                 .phone(phone)
                 .isUser(isUser)
+                .deviceToken(config.token)
                 .build()).enqueue(request);
     }
     private ApolloCall.Callback<MessengerConnectMutation.Data> request = new ApolloCall.Callback<MessengerConnectMutation.Data>() {

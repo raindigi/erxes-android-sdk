@@ -1,4 +1,4 @@
-package com.newmedia.erxeslibrary.configuration;
+package io.erxes.main;
 
 import android.util.Log;
 
