@@ -84,7 +84,7 @@ public class DataManager {
             }
             catch (JsonSyntaxException e){e.printStackTrace();}
 
-        return null;
+        return new Messengerdata();
     }
     public void setMessengerDataIntegration(String data){
         editor.putString("messageintegration", data);
@@ -99,6 +99,6 @@ public class DataManager {
             }
             catch (JsonSyntaxException e){e.printStackTrace();}
 
-        return null;
+        return new MessengerdataIntegration();
     }
 }

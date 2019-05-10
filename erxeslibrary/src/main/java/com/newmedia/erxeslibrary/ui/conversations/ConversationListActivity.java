@@ -1,5 +1,6 @@
 package com.newmedia.erxeslibrary.ui.conversations;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -174,25 +175,27 @@ public class ConversationListActivity extends AppCompatActivity  implements Erxe
     }
     private void changeIntegration(){
         Messengerdata.Messages a = dataManager.getMessenger().messages;
-        MessengerdataIntegration.Messages b = dataManager.getMessengerIntegration().getMessages(config.language);
+        MessengerdataIntegration.Messages b  = dataManager.getMessengerIntegration().getMessages(config.language);
         if(b !=null ) {
             greetingTitle.setText(b.greetings.title);
             greetingMessage.setText(b.greetings.message);
         }
-        else{
-            greetingTitle.setText(a.greetings.title);
-            greetingMessage.setText(a.greetings.message);
+        else if(a.greetings!=null){
+            if(a.greetings.title!=null)
+                greetingTitle.setText(a.greetings.title);
+            if(a.greetings.message!=null)
+                greetingMessage.setText(a.greetings.message);
         }
         if(dataManager.getMessengerIntegration().knowledgeBaseTopicId!=null){
 
         }
-        if(messengerdataIntegration.links.get("facebook").isEmpty()){
+        if(messengerdataIntegration.links.get("facebook")==null || messengerdataIntegration.links.get("facebook").isEmpty()){
             this.findViewById(R.id.fbcontainer).setVisibility(View.GONE);
         }
-        if(messengerdataIntegration.links.get("twitter").isEmpty()){
+        if(messengerdataIntegration.links.get("twitter")==null||messengerdataIntegration.links.get("twitter").isEmpty()){
             this.findViewById(R.id.twcontainer).setVisibility(View.GONE);
         }
-        if(messengerdataIntegration.links.get("youtube").isEmpty()){
+        if(messengerdataIntegration.links.get("youtube")==null||messengerdataIntegration.links.get("youtube").isEmpty()){
             this.findViewById(R.id.ytcontainer).setVisibility(View.GONE);
         }
         TabLayout tabLayout = findViewById(R.id.tabs);

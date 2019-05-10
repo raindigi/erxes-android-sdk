@@ -1,26 +1,52 @@
-subscription ConversationMessageInserted($_id: String!){
-  conversationMessageInserted(_id: $_id) {
-    _id
-    content
-    conversationId
-    internal
-    customerId
-    createdAt
-    attachments{
-     size
-     url
-     name
-     type
-    }
-    isCustomerRead
-    formWidgetData
-    user{
-         _id
-             details
-             {
-                    avatar
-                    fullName
-             }
-      }
+#subscription ConversationMessageInserted($_id: String!){
+#  conversationMessageInserted(_id: $_id) {
+#    _id
+#    content
+#    conversationId
+#    internal
+#    customerId
+#    createdAt
+#    attachments{
+#     size
+#     url
+#     name
+#     type
+#    }
+#    isCustomerRead
+#    formWidgetData
+#    user{
+#         _id
+#             details
+#             {
+#                    avatar
+#                    fullName
+#             }
+#      }
+#  }
+#}
+# Write your query or mutation here
+fragment ConversationMessageFragment on ConversationMessage {
+  _id
+  content
+  attachments{
+    url
+    name
+    type
+    size
+  }
+  conversationId
+  customerId
+  userId
+  createdAt
+}
+subscription conversationAdminMessageInserted($customerId:String!){
+  conversationAdminMessageInserted(customerId:$customerId){
+    ... ConversationMessageFragment
+  }
+}
+
+subscription conversationMessageInserted($_id : String!){
+  conversationMessageInserted(_id: $_id){
+    ...ConversationMessageFragment
   }
 }

@@ -22,9 +22,11 @@ import com.newmedia.erxeslibrary.graphqlfunction.SetConnect;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.realm.Realm;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 public class ErxesRequest {
     final private String TAG = "erxesrequest";
@@ -48,8 +50,17 @@ public class ErxesRequest {
         Helper.Init(context);
     }
     public void set_client(){
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+
         if(config.HOST_3100!=null)
-        okHttpClient = new OkHttpClient.Builder().build();
+        okHttpClient = new OkHttpClient.Builder()
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .addInterceptor(logging)
+                .addInterceptor(new AddCookiesInterceptor(this.context))
+                .addInterceptor(new ReceivedCookiesInterceptor(this.context))
+                .build();
         apolloClient = ApolloClient.builder()
                 .serverUrl(config.HOST_3100)
                 .okHttpClient(okHttpClient)

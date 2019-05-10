@@ -23,12 +23,14 @@ import com.apollographql.apollo.api.Response;
 import com.apollographql.apollo.rx2.Rx2Apollo;
 import com.apollographql.apollo.subscription.WebSocketSubscriptionTransport;
 import com.newmedia.erxes.basic.type.CustomType;
-import com.newmedia.erxes.subscription.ConversationMessageInsertedSubscription;
+import com.newmedia.erxes.subscription.ConversationAdminMessageInsertedSubscription;
 import com.newmedia.erxeslibrary.DataManager;
 import com.newmedia.erxeslibrary.ui.login.ErxesActivity;
 import com.newmedia.erxeslibrary.model.Conversation;
 import com.newmedia.erxeslibrary.model.ConversationMessage;
 import com.newmedia.erxeslibrary.R;
+
+import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
@@ -42,6 +44,7 @@ public class ListenerService extends Service{
     private static final String TAG = ListenerService.class.getName();
     private OkHttpClient okHttpClient;
     private ApolloClient apolloClient;
+    private String customerId;
     private CompositeDisposable disposables = new CompositeDisposable();
 
     @Nullable
@@ -59,14 +62,14 @@ public class ListenerService extends Service{
 //        startListen();
         DataManager dataManager;
         dataManager =  DataManager.getInstance(this);
-
+        customerId  = dataManager.getDataS(DataManager.customerId);
         okHttpClient = new OkHttpClient.Builder().build();
         apolloClient = ApolloClient.builder()
                 .serverUrl(dataManager.getDataS("HOST3100"))
                 .okHttpClient(okHttpClient)
                 .subscriptionTransportFactory(new WebSocketSubscriptionTransport.Factory(dataManager.getDataS("HOST3300"), okHttpClient))
                 .addCustomTypeAdapter(CustomType.JSON,new JsonCustomTypeAdapter())
-                .addCustomTypeAdapter(com.newmedia.erxes.subscription.type.CustomType.JSON,new JsonCustomTypeAdapter())
+//                .addCustomTypeAdapter(com.newmedia.erxes.subscription.type.CustomType.JSON,new JsonCustomTypeAdapter())
                 .build();
 
 
@@ -92,89 +95,36 @@ public class ListenerService extends Service{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
-
-        String id = null;
-        if(intent != null) {
-            Bundle bundle = intent.getExtras();
-            if (bundle != null)
-                id = bundle.getString("id", null);
-        }
-        if(id==null){
-            DataManager dataManager;
-            dataManager =  DataManager.getInstance(this);
-            Realm realm = DB.getDB();
-            RealmResults<Conversation> list =
-                            realm.where(Conversation.class)
-                            .equalTo("status","open")
-                            .equalTo("customerId",dataManager.getDataS(DataManager.customerId))
-                            .equalTo("integrationId",dataManager.getDataS(DataManager.integrationId)).findAll();
-            Log.d(TAG,"start "+list.size());
-            if(disposables.size() != list.size()) {
-                disposables.clear();
-                for(int i = 0; i< list.size();i++) {
-                    conversation_listen(list.get(i)._id);
-                }
-            }
-
-
-        }else{
-            conversation_listen(id);
-            Log.d(TAG,"start only one");
-        }
-
+        conversation_listen();
         return super.onStartCommand(intent, flags, startId);
-
-
     }
-    private boolean run_thread(final String conversationId){
-        if(!isNetworkConnected()){
-            //internetgui yud gesen ug
-            new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        Log.d(TAG,"subscribe thread running ");
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e1) {
-                        e1.printStackTrace();
-                    }
-                    conversation_listen(conversationId);
-                }
-            }).start();
-            return true;
-        }
-        return false;
-    }
-    public void conversation_listen(final String conversationId){
-        if(run_thread(conversationId))
-            return;
-        ApolloSubscriptionCall<ConversationMessageInsertedSubscription.Data> subscriptionCall;
+
+    public void conversation_listen(){
+        ApolloSubscriptionCall<ConversationAdminMessageInsertedSubscription.Data> subscriptionCall;
         if(apolloClient == null)
             return;
         subscriptionCall = apolloClient
-                                .subscribe(ConversationMessageInsertedSubscription.builder()
-                                ._id(conversationId)
+                                .subscribe(ConversationAdminMessageInsertedSubscription.builder()
+                                .customerId(customerId)
                                 .build());
-        disposables.add(Rx2Apollo.from(subscriptionCall)
+        DisposableSubscriber<Response<ConversationAdminMessageInsertedSubscription.Data>> a = Rx2Apollo.from(subscriptionCall)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeWith(
-                        new DisposableSubscriber<Response<ConversationMessageInsertedSubscription.Data>>() {
+                        new DisposableSubscriber<Response<ConversationAdminMessageInsertedSubscription.Data>>() {
 
                             @Override
                             protected void onStart() {
                                 super.onStart();
-                                Log.d(TAG,"onstarted "+conversationId);
+                                Log.d(TAG,"onstarted "+customerId);
                             }
 
                             @Override public void onError(Throwable e) {
-                                Log.d(TAG,"onerror "+conversationId);
+                                Log.d(TAG,"onerror "+customerId);
                                 e.printStackTrace();
-//                                disposables.delete(this);
-                                run_thread(conversationId);
                             }
 
-                            @Override public void onNext(Response<ConversationMessageInsertedSubscription.Data> response) {
+                            @Override public void onNext(Response<ConversationAdminMessageInsertedSubscription.Data> response) {
                                 if(!response.hasErrors()){
 //                                    if(ErxesRequest.erxesRequest != null) {
 //                                        ErxesRequest.erxesRequest.ConversationMessageSubsribe_handmade(response.data().conversationMessageInserted());
@@ -183,30 +133,29 @@ public class ListenerService extends Service{
                                     DataManager dataManager =  DataManager.getInstance(ListenerService.this);
                                     if(dataManager.getDataB("chat_is_going")==false) {
                                         Log.d(TAG,"dead");
-                                        String chat_message = response.data().conversationMessageInserted().content();
+                                        String chat_message = response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().content();
                                         String name = "";
                                         try {
-                                            if (response.data().conversationMessageInserted().user().details() != null)
-                                                name = response.data().conversationMessageInserted().user().details().fullName();
+//                                            if (response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().user() != null)
+//                                                name = response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().user().details().fullName();
                                         }catch (Exception e){}
-                                        createNotificationChannel(chat_message,name,response.data().conversationMessageInserted().conversationId());
+                                        createNotificationChannel(chat_message,name,response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().conversationId());
 
                                     }
 
                                     Realm inner =  DB.getDB();
-
                                     inner.beginTransaction();
-                                    inner.insertOrUpdate(ConversationMessage.convert(response.data().conversationMessageInserted()));
+                                    inner.insertOrUpdate(ConversationMessage.convert(response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment()));
                                     inner.commitTransaction();
 
-                                    Conversation conversation = inner.where(Conversation.class).equalTo("_id",response.data().conversationMessageInserted().conversationId()).findFirst();
+                                    Conversation conversation = inner.where(Conversation.class).equalTo("_id",response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().conversationId()).findFirst();
 
                                     Log.d(TAG,"insert to database");
 
                                     if(conversation != null) {
                                         Log.d(TAG,"parent change");
                                         inner.beginTransaction();
-                                        conversation.content = (response.data().conversationMessageInserted().content());
+                                        conversation.content = (response.data().conversationAdminMessageInserted().fragments().conversationMessageFragment().content());
                                         conversation.isread = false;
                                         inner.insertOrUpdate(conversation);
                                         inner.commitTransaction();
@@ -214,7 +163,7 @@ public class ListenerService extends Service{
                                     inner.close();
 //
                                 }
-                                Log.d(TAG,"onnext "+conversationId);
+                                Log.d(TAG,"onnext "+customerId);
 
 
                             }
@@ -223,8 +172,8 @@ public class ListenerService extends Service{
                                 Log.d(TAG,"subsrioption ehsouced");
                             }
                         }
-                )
-        );
+                );
+
     }
     private void createNotificationChannel(String chat_message,String name,String conversion_id) {
 

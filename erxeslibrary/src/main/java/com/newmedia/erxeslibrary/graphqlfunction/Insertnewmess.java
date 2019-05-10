@@ -57,11 +57,6 @@ public class Insertnewmess {
                 ConversationMessage a = ConversationMessage.convert(response.data().insertMessage(),message,config);
                 DB.save(conversation);
                 DB.save(a);
-                Intent intent2 = new Intent(context, ListenerService.class);
-                intent2.putExtra("id",config.conversationId);
-                context.startService(intent2);
-//                    ListenerService.conversation_listen(config.conversationId);
-
                 ER.notefyAll(ReturnType.Mutation_new,response.data().insertMessage().conversationId(),null);
 
 

@@ -1,5 +1,6 @@
 package com.newmedia.erxeslibrary.configuration;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,12 @@ public class MessengerdataIntegration {
     public Map<String, String> links;
 
     public Messages getMessages(String lan){
-        return messages.get(lan);
+        if(messages!=null)
+            return messages.get(lan);
+        return null;
+    }
+
+    public MessengerdataIntegration() {
+        links = new HashMap<>();
     }
 }

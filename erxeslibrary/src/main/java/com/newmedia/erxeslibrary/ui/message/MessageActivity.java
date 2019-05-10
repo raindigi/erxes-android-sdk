@@ -32,8 +32,13 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 
+import com.apollographql.apollo.ApolloSubscriptionCall;
+import com.apollographql.apollo.api.Response;
+import com.apollographql.apollo.exception.ApolloException;
+import com.apollographql.apollo.rx2.Rx2Apollo;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.newmedia.erxes.subscription.ConversationMessageInsertedSubscription;
 import com.newmedia.erxeslibrary.configuration.Config;
 import com.newmedia.erxeslibrary.configuration.DB;
 import com.newmedia.erxeslibrary.configuration.Helper;
@@ -47,8 +52,14 @@ import com.newmedia.erxeslibrary.model.User;
 import com.newmedia.erxeslibrary.R;
 
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.DisposableSubscriber;
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
@@ -69,8 +80,7 @@ public class MessageActivity extends AppCompatActivity implements ErxesObserver 
     private GFilePart gFilePart;
     private Animator currentAnimator;
     private int shortAnimationDuration=500;
-
-
+    private Disposable disposable;
     private final String TAG = "MESSAGEACTIVITY";
     @Override
     public void notify(final int returnType, String conversationId,  String message) {
@@ -414,20 +424,21 @@ public class MessageActivity extends AppCompatActivity implements ErxesObserver 
         RealmResults<ConversationMessage> d =
                 realm.where(ConversationMessage.class).
                         equalTo("conversationId",config.conversationId).findAll();
-        d.addChangeListener(new RealmChangeListener<RealmResults<ConversationMessage>>() {
-            @Override
-            public void onChange(RealmResults<ConversationMessage> conversationMessages) {
-                MessageActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        subscription();
-                    }
-                });
-
-            }
-        });
+//        d.addChangeListener(new RealmChangeListener<RealmResults<ConversationMessage>>() {
+//            @Override
+//            public void onChange(RealmResults<ConversationMessage> conversationMessages) {
+//                MessageActivity.this.runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        subscription();
+//                    }
+//                });
+//
+//            }
+//        });
         mMessageRecycler.setAdapter(new MessageListAdapter(this,d));
         erxesRequest.getMessages(config.conversationId);
+        conversation_listen(config.conversationId);
     }
     public void Click_back(View v){
         finish();
@@ -461,11 +472,86 @@ public class MessageActivity extends AppCompatActivity implements ErxesObserver 
             swipeRefreshLayout.setRefreshing(false);
 
     }
+    public void conversation_listen(String conversation_id){
+        ApolloSubscriptionCall<ConversationMessageInsertedSubscription.Data> subscriptionCall;
 
+        subscriptionCall = erxesRequest.apolloClient.subscribe(ConversationMessageInsertedSubscription.builder()
+                        ._id(conversation_id)
+                        .build());
+//        subscriptionCall.execute(new ApolloSubscriptionCall.Callback<ConversationMessageInsertedSubscription.Data>() {
+//            @Override
+//            public void onResponse(@NotNull Response<ConversationMessageInsertedSubscription.Data> response) {
+//                Log.d("nice","response");
+//            }
+//
+//            @Override
+//            public void onFailure(@NotNull ApolloException e) {
+//                Log.d("nice","failed");
+//
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                Log.d("nice","oncompelete");
+//
+//            }
+//
+//            @Override
+//            public void onTerminated() {
+//                Log.d("nice","terminated");
+//            }
+//        });
+        disposable = Rx2Apollo.from(subscriptionCall)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(
+                        new DisposableSubscriber<Response<ConversationMessageInsertedSubscription.Data>>() {
+
+                            @Override
+
+                            protected void onStart() {
+                                super.onStart();
+                                Log.d("nice","start");
+
+                            }
+
+                            @Override public void onError(Throwable e) {
+                                e.printStackTrace();
+                                Log.d("nice","onError");
+
+                            }
+
+                            @Override public void onNext(Response<ConversationMessageInsertedSubscription.Data> response) {
+                                if(!response.hasErrors()) {
+                                    Log.d("nice","new message");
+                                    Realm inner =  DB.getDB();
+                                    inner.beginTransaction();
+                                    inner.insertOrUpdate(ConversationMessage.convert(response.data().conversationMessageInserted().fragments().conversationMessageFragment()));
+                                    inner.commitTransaction();
+                                    inner.close();
+                                    subscription();
+                                }
+                                else
+                                Log.d("nice","new message2");
+
+                            }
+
+                            @Override public void onComplete() {
+                                Log.d("nice","oncomplete");
+                            }
+                        }
+                );
+
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
         realm.close();
+        if(disposable!=null) {
+            Log.d("nice","dispose");
+
+            disposable.dispose();
+        }
     }
 
     @Override

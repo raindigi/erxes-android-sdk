@@ -4,7 +4,8 @@ import com.apollographql.apollo.api.Response;
 
 import com.newmedia.erxes.basic.InsertMessageMutation;
 import com.newmedia.erxes.basic.MessagesQuery;
-import com.newmedia.erxes.subscription.ConversationMessageInsertedSubscription;
+import com.newmedia.erxes.subscription.ConversationAdminMessageInsertedSubscription;
+import com.newmedia.erxes.subscription.fragment.ConversationMessageFragment;
 import com.newmedia.erxeslibrary.configuration.Config;
 
 import org.json.JSONArray;
@@ -97,7 +98,7 @@ public class ConversationMessage extends RealmObject {
         b.customerId = config.customerId;//Config.customerId;
         return b;
     }
-    static public ConversationMessage convert(ConversationMessageInsertedSubscription.ConversationMessageInserted a){
+    static public ConversationMessage convert(ConversationMessageFragment a){
         ConversationMessage b = new ConversationMessage();
         b.conversationId = a.conversationId();
         b.createdAt = a.createdAt();
@@ -121,11 +122,11 @@ public class ConversationMessage extends RealmObject {
         }
         b.internal = false;
         b.customerId = a.customerId();
-        if(a.user() != null) {
-            User user = new User();
-            user.convert(a.user());
-            b.user = user;
-        }
+//        if(a.user() != null) {
+//            User user = new User();
+//            user.convert(a.user());
+//            b.user = user;
+//        }
         return b;
     }
 

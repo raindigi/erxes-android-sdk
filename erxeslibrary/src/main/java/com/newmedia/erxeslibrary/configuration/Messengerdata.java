@@ -18,7 +18,7 @@ public class Messengerdata {
         public Greetings greetings;
     }
     public class Greetings{
-        public String message,title;
+        public String message="",title="";
     }
     public String getWelcome(String lan){
         if(messages==null || messages.welcome == null)

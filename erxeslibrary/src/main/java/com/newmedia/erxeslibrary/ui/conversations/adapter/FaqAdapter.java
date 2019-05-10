@@ -79,6 +79,7 @@ public class FaqAdapter extends RecyclerView.Adapter<FaqAdapter.Holder> {
 
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
+        if(Helper.ICON_MAP.get(categories.get(position).icon) != null)
         holder.icon.setImageResource(Helper.ICON_MAP.get(categories.get(position).icon).intValue());
         holder.title.setText(categories.get(position).title+"("+categories.get(position).numOfArticles+") ");
         holder.description.setText(Html.fromHtml(categories.get(position).description));

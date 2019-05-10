@@ -5,7 +5,8 @@ package com.newmedia.erxeslibrary.model;
 import com.newmedia.erxes.basic.ConversationDetailQuery;
 import com.newmedia.erxes.basic.MessagesQuery;
 import com.newmedia.erxes.basic.MessengerSupportersQuery;
-import com.newmedia.erxes.subscription.ConversationMessageInsertedSubscription;
+import com.newmedia.erxes.subscription.ConversationAdminMessageInsertedSubscription;
+import com.newmedia.erxes.subscription.fragment.ConversationMessageFragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +24,11 @@ public class User extends RealmObject{
         this.fullName = itemuser.details().fullName();
         this._id = itemuser._id();
     }
-    public void convert(ConversationMessageInsertedSubscription.User itemuser){
-        this.avatar = itemuser.details().avatar();
-        this.fullName = itemuser.details().fullName();
-        this._id = itemuser._id();
-    }
+//    public void convert(ConversationMessageFragment.User itemuser){
+//        this.avatar = itemuser.details().avatar();
+//        this.fullName = itemuser.details().fullName();
+//        this._id = itemuser._id();
+//    }
     static public List<User> convert(List<MessengerSupportersQuery.MessengerSupporter> itemuser){
         User temp;
         List<User> users = new ArrayList<>();
