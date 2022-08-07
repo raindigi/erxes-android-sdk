@@ -1,32 +1,29 @@
 package com.newmedia.erxeslibrary.model;
 
-import android.util.Log;
-
-import com.newmedia.erxes.basic.FaqGetQuery;
+import com.erxes.io.opens.KnowledgeBaseTopicDetailQuery;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.realm.RealmList;
-import io.realm.RealmObject;
-import io.realm.annotations.PrimaryKey;
-
-public class KnowledgeBaseTopic extends RealmObject {
-    @PrimaryKey
-    public String _id;
+public class KnowledgeBaseTopic {
+    public String id;
     public String title;
     public String description;
-    public RealmList<KnowledgeBaseCategory> categories;
+    public List<KnowledgeBaseCategory> categories;
     public String color;
     public String languageCode;
 
-    public void convert(FaqGetQuery.Data data){
-        this._id = data.knowledgeBaseTopicsDetail()._id();
-        this.title = data.knowledgeBaseTopicsDetail().title();
-        this.description = data.knowledgeBaseTopicsDetail().description();
-        this.color = data.knowledgeBaseTopicsDetail().color();
-        this.languageCode = data.knowledgeBaseTopicsDetail().languageCode();
-        this.categories = new RealmList<>();
-        this.categories.addAll( KnowledgeBaseCategory.convert(data.knowledgeBaseTopicsDetail().categories()));
+    public static KnowledgeBaseTopic convert(KnowledgeBaseTopicDetailQuery.Data data){
+        KnowledgeBaseTopic knowledgeBaseTopic = new KnowledgeBaseTopic();
+        if (data.knowledgeBaseTopicDetail() != null) {
+            knowledgeBaseTopic.id = data.knowledgeBaseTopicDetail()._id();
+            knowledgeBaseTopic.title = data.knowledgeBaseTopicDetail().title();
+            knowledgeBaseTopic.description = data.knowledgeBaseTopicDetail().description();
+            knowledgeBaseTopic.color = data.knowledgeBaseTopicDetail().color();
+            knowledgeBaseTopic.languageCode = data.knowledgeBaseTopicDetail().languageCode();
+            knowledgeBaseTopic.categories = new ArrayList<>();
+            knowledgeBaseTopic.categories.addAll(KnowledgeBaseCategory.convert(data.knowledgeBaseTopicDetail().categories()));
+        }
+        return knowledgeBaseTopic;
     }
 }

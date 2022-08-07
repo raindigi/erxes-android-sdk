@@ -1,0 +1,31 @@
+subscription SaasConversationMessageInserted($id: String!){
+    conversationMessageInserted(_id: $id) {
+        _id
+        conversationId
+        customerId
+        content
+        createdAt
+        internal
+        fromBot
+        contentType
+        videoCallData {
+            url
+            name
+            status
+        }
+        attachments {
+            size
+            url
+            type
+            name
+        }
+        user
+    }
+}
+
+subscription SaasConversationChanged($id: String!) {
+    conversationChanged(_id: $id) {
+        conversationId
+        type
+    }
+}

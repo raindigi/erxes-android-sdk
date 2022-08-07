@@ -1,85 +1,53 @@
 package com.newmedia.erxeslibrary.ui.message;
 
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
+import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import android.graphics.PorterDuff;
-import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.v4.widget.CircularProgressDrawable;
-import android.support.v7.widget.RecyclerView;
+import android.graphics.drawable.Drawable;
 import android.text.Html;
-import android.text.Spanned;
+import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.target.Target;
-import com.newmedia.erxeslibrary.configuration.Config;
-import com.newmedia.erxeslibrary.model.*;
 import com.newmedia.erxeslibrary.R;
+import com.newmedia.erxeslibrary.configuration.Config;
+import com.newmedia.erxeslibrary.helper.Json;
+import com.newmedia.erxeslibrary.model.ConversationMessage;
+import com.newmedia.erxeslibrary.model.FileAttachment;
+import com.newmedia.erxeslibrary.utils.EnumUtil;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MessageListAdapter extends RecyclerView.Adapter {
 
 
-    private List<ConversationMessage> mMessageList;
-    private Activity context;
-    private int previous_size = 0;
-    private Config config;
-    public MessageListAdapter(Activity context, List<ConversationMessage> mMessageList) {
-        this.context = context;
-        this.config = Config.getInstance(context);
-        this.mMessageList =  mMessageList;
-        this.previous_size = this.mMessageList.size();
-    }
+    private final int VIEW_SENT = 0;
+    private final int VIEW_RECIEVED = 1;
+    private final int VIEW_WELCOME = 2;
+    private final List<ConversationMessage> mMessageList;
+    private final MessageActivity activity;
+    private final Config config;
 
-    public void setmMessageList(List<ConversationMessage> mMessageList) {
+    MessageListAdapter(MessageActivity activity, List<ConversationMessage> mMessageList) {
+        this.activity = activity;
+        this.config = Config.getInstance(activity);
         this.mMessageList = mMessageList;
-    }
-    public boolean IsBeginningChat(){
-        if(mMessageList.size() == 0)
-            return true;
-        else
-            return false;
-    }
-
-    public boolean refresh_data(){
-
-        if(mMessageList.size() > previous_size) {
-            int counter_before = mMessageList.size();
-            int zoruu = mMessageList.size() - previous_size;
-
-            previous_size = mMessageList.size();
-            if(config.messengerdata.getWelcome(config.language)!=null) {
-                if (zoruu == 1)
-                    notifyItemInserted(mMessageList.size());
-                else
-                    notifyItemRangeInserted(counter_before+1, zoruu);
-            }else{
-                if (zoruu == 1)
-                    notifyItemInserted(mMessageList.size() - 1);
-                else
-                    notifyItemRangeInserted(counter_before, zoruu);
-
-            }
-            return true;
-        }
-        else
-            return false;
     }
 
     @NonNull
@@ -87,49 +55,41 @@ public class MessageListAdapter extends RecyclerView.Adapter {
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
 
-        if(viewType == 0) {
+        if (viewType == VIEW_SENT) {
             View view = layoutInflater.inflate(R.layout.item_message_sent, parent, false);
-//        view.setOnClickListener(onClickListener);
             return new SentMessageHolder(view);
-        }
-        else if(viewType == 1){
+        } else if (viewType == VIEW_RECIEVED) {
             View view = layoutInflater.inflate(R.layout.item_message_received, parent, false);
-//        view.setOnClickListener(onClickListener);
             return new ReceivedMessageHolder(view);
-        }
-        else {
+        } else {
             View view = layoutInflater.inflate(R.layout.item_message_welcome, parent, false);
-//        view.setOnClickListener(onClickListener);
             return new WelcomeMessageHolder(view);
         }
     }
 
     @Override
     public int getItemViewType(int position) {
-        if(position == 0 && config.messengerdata.getWelcome(config.language)!=null)
-            return 2; //welcomeMessage
+        int mPosition = position;
+        if (mPosition == 0 && !TextUtils.isEmpty(config.messengerdata.getMessages().getWelcome()))
+            return VIEW_WELCOME;
 
-        if(config.messengerdata.getWelcome(config.language)!=null)
-            position = position - 1;
+        if (!TextUtils.isEmpty(config.messengerdata.getMessages().getWelcome()))
+            mPosition = mPosition - 1;
 
-        if( config.customerId.equalsIgnoreCase(mMessageList.get(position).customerId ))
-            return 0;
+        if (mMessageList.get(mPosition).user != null|| mMessageList.get(mPosition).botData!=null)
+            return VIEW_RECIEVED;
         else
-            return 1;
+            return VIEW_SENT;
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-
-
-        ConversationMessage message ;
-
-        if(config.messengerdata.getWelcome(config.language)!=null && (position == 0)){
+        ConversationMessage message;
+        if (!TextUtils.isEmpty(config.messengerdata.getMessages().getWelcome()) && (position == 0)) {
             message = new ConversationMessage();
-            message.content = (config.messengerdata.getWelcome(config.language));
+            message.content = (config.messengerdata.getMessages().getWelcome());
             message.createdAt = ("");
-        }
-        else if(config.messengerdata.getWelcome(config.language) != null)
+        } else if (!TextUtils.isEmpty(config.messengerdata.getMessages().getWelcome()))
             message = mMessageList.get(position - 1);
         else
             message = mMessageList.get(position);
@@ -149,202 +109,237 @@ public class MessageListAdapter extends RecyclerView.Adapter {
 
     @Override
     public int getItemCount() {
-        if(config.messengerdata.getWelcome(config.language) != null)
+        if (!TextUtils.isEmpty(config.messengerdata.getMessages().getWelcome()))
             return mMessageList.size() + 1;
         else
-            return mMessageList.size() ;
-
+            return mMessageList.size();
     }
-    private View.OnClickListener fileDownload = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            String url = (String)view.getTag();
-            if(url.startsWith("http")) {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse((String) view.getTag()));
-                context.startActivity(browserIntent);
-            }
-        }
-    };
+
     private class SentMessageHolder extends RecyclerView.ViewHolder {
         TextView messageText, timeText;
-        ViewGroup filelist;
+        RecyclerView fileRecyclerView;
+        LinearLayout textTypeLayout, sendLayout;
+        CardView vCallTypeLayout;
+
         SentMessageHolder(View itemView) {
             super(itemView);
-
-            messageText =  itemView.findViewById(R.id.text_message_body);
-            timeText =  itemView.findViewById(R.id.text_message_time);
-            filelist = itemView.findViewById(R.id.filelist);
+            messageText = itemView.findViewById(R.id.text_message_body);
+            timeText = itemView.findViewById(R.id.text_message_time);
+            fileRecyclerView = itemView.findViewById(R.id.fileRecyclerView);
+            textTypeLayout = itemView.findViewById(R.id.textType);
+            vCallTypeLayout = itemView.findViewById(R.id.vCallType);
+            sendLayout = itemView.findViewById(R.id.sendLayout);
         }
 
         void bind(ConversationMessage message) {
-            messageText.setText(Html.fromHtml(message.content));;
-            timeText.setText(config.Message_datetime(message.createdAt));
-            GradientDrawable a1 = (GradientDrawable) messageText.getBackground();
-            a1.setColor(config.colorCode);
-//                messageText.setBackgroundColor(Color.parseColor(Config.color));
-            filelist.removeAllViews();
-            timeText.setText(config.Message_datetime(message.createdAt));
-            if(message.attachments !=null) {
-                LayoutInflater layoutInflater = LayoutInflater.from(context);
+            timeText.setText(message.createdAt);
+            Drawable drawable = activity.getDrawable(R.drawable.rounded_rectangle_blue);
+            drawable.setColorFilter(config.colorCode, PorterDuff.Mode.SRC_ATOP);
+            sendLayout.setBackground(drawable);
 
-                try {
-
-                    JSONArray a = new JSONArray(message.attachments);
-                    for (int i = 0; i < a.length(); i++) {
-                        View view = layoutInflater.inflate(R.layout.file_item, filelist, false);
-                        draw_file(a.getJSONObject(i),
-                                (ImageView) view.findViewById(R.id.image_input),
-                                view,
-                                (TextView) view.findViewById(R.id.filename));
-                        filelist.addView(view);
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+            if (message.contentType!=null && message.contentType.equals(EnumUtil.TYPEVCALLREQUEST)) {
+                vCallTypeLayout.setVisibility(View.VISIBLE);
+                textTypeLayout.setVisibility(View.GONE);
+            } else {
+                vCallTypeLayout.setVisibility(View.GONE);
+                textTypeLayout.setVisibility(View.VISIBLE);
+                messageText.setText(config.getHtml(message.content));
+                bindAttachments(message, fileRecyclerView);
             }
-
         }
     }
 
-
     private class ReceivedMessageHolder extends RecyclerView.ViewHolder {
-        TextView  timeText;
+        TextView timeText;
         TextView messageText;
         ImageView profileImage;
-        ViewGroup filelist;
-
+        RecyclerView fileRecyclerView;
+        RecyclerView botRecyclerView;
+        LinearLayout textTypeLayout;
+        CardView vCallTypeLayout;
+        CardView vCallTypeEndLayout;
+        Button joinVCall;
+        TextView orPassToBrowser;
 
         ReceivedMessageHolder(View itemView) {
             super(itemView);
-
-            messageText =  itemView.findViewById(R.id.text_message_body);
-            timeText =  itemView.findViewById(R.id.text_message_time);
+            messageText = itemView.findViewById(R.id.text_message_body);
+            timeText = itemView.findViewById(R.id.text_message_time);
             profileImage = itemView.findViewById(R.id.image_message_profile);
-            filelist = itemView.findViewById(R.id.filelist);
-
+            fileRecyclerView = itemView.findViewById(R.id.fileRecyclerView);
+            botRecyclerView = itemView.findViewById(R.id.botData);
+            textTypeLayout = itemView.findViewById(R.id.textType);
+            vCallTypeLayout = itemView.findViewById(R.id.vCallType);
+            vCallTypeEndLayout = itemView.findViewById(R.id.vCallTypeEnd);
+            joinVCall = itemView.findViewById(R.id.joinVCall);
+            orPassToBrowser = itemView.findViewById(R.id.orPassToBrowser);
         }
 
         void bind(ConversationMessage message) {
-//            messageText.loadData(message.content,"text/html","utf-8");
-            Log.e("TAG", "bind: " + message.content );
-            Spanned htmlDescription = Html.fromHtml(message.content);
-            String descriptionWithOutExtraSpace = htmlDescription.toString().trim();
-            messageText.setText(htmlDescription.subSequence(0, descriptionWithOutExtraSpace.length()));
-//            messageText.setText(message.content);;
-            timeText.setText(config.Message_datetime(message.createdAt));
+            timeText.setText(message.createdAt);
+            if (message.contentType!=null && message.contentType.equals(EnumUtil.TYPEVCALL)) {
+                textTypeLayout.setVisibility(View.GONE);
 
-/**/
-            if(message.user!=null){
-                Glide.with(context).load(message.user.avatar)
-                        .placeholder(R.drawable.avatar)
-                        .circleCrop()
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .into(profileImage);
-            } else
-                Glide.with(context).load(R.drawable.avatar)
-                        .placeholder(R.drawable.avatar)
-                        .circleCrop()
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .into(profileImage);
-
-            filelist.removeAllViews();
-            timeText.setText(config.Message_datetime(message.createdAt));
-            if(message.attachments !=null) {
-                LayoutInflater layoutInflater = LayoutInflater.from(context);
-
-                try {
-
-                    JSONArray a = new JSONArray(message.attachments);
-                    for (int i = 0; i < a.length(); i++) {
-                        View view = layoutInflater.inflate(R.layout.file_item, filelist, false);
-                        draw_file(a.getJSONObject(i),
-                                (ImageView) view.findViewById(R.id.image_input),
-                                view,
-                                (TextView) view.findViewById(R.id.filename));
-                        filelist.addView(view);
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                if (!message.vCallStatus.equalsIgnoreCase("end")) {
+                    vCallTypeLayout.setVisibility(View.VISIBLE);
+                    vCallTypeEndLayout.setVisibility(View.GONE);
+                    joinVCall.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            activity.vCallWebView(message.vCallUrl,message.vCallStatus, message.vCallName);
+                        }
+                    });
+                    String thisLink = "(or click " +"<a href=\"" + message.vCallUrl + "\">" + "this link</a>" + " to open a new tab)";
+                    orPassToBrowser.setText(Html.fromHtml(thisLink));
+                    orPassToBrowser.setMovementMethod(LinkMovementMethod.getInstance());
+                } else {
+                    vCallTypeEndLayout.setVisibility(View.VISIBLE);
+                    vCallTypeLayout.setVisibility(View.GONE);
                 }
+
+            } else {
+                vCallTypeLayout.setVisibility(View.GONE);
+                textTypeLayout.setVisibility(View.VISIBLE);
+
+                messageText.setText(config.getHtml(message.content));
+                if (message.content!=null&&message.content.contains("href"))
+                    messageText.setMovementMethod(LinkMovementMethod.getInstance());
+                else messageText.setMovementMethod(null);
+
+                if(message.botData!=null) {
+                    Glide.with(activity).load(R.drawable.botpress)
+                            .placeholder(R.drawable.avatar)
+                            .circleCrop()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(profileImage);
+                }
+                else if (message.user != null) {
+                        Glide.with(activity).load(message.user.getAvatar())
+                                .placeholder(R.drawable.avatar)
+                                .circleCrop()
+                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                .into(profileImage);
+                } else {
+                        Glide.with(activity).load(R.drawable.avatar)
+                            .placeholder(R.drawable.avatar)
+                            .circleCrop()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(profileImage);
+                }
+                if(message.botData!=null) {
+                    Json data = message.botData;
+                    if (message.botData != null) {
+                        List<Map> maps = message.botData.array;
+                        if (data.is_object) {
+                            maps = (List) ((Map)message.botData.object).get("botData");
+                        }
+
+                        String title = "";
+                        List<Map> buttons = null;
+                        for (int i = 0; i < maps.size(); i++) {
+                            if (maps.get(i).containsKey("type")) {
+                                String type = (String) maps.get(i).get("type");
+                                if (type.contentEquals("text")) {
+                                    title = (String) maps.get(i).get("text");
+                                }
+                                else if(type.contentEquals("custom")){
+                                    try{
+                                        Map j1 = (Map) maps.get(i).get("wrapped");
+                                        title = (String) j1.get("text");
+                                    }catch (Exception e){}
+                                }
+                            }
+                        }
+                        messageText.setText(title);
+                    }
+                    bindBotData(message,botRecyclerView);
+                }else{
+                    messageText.setText(config.getHtml(message.content));
+                }
+                bindAttachments(message, fileRecyclerView);
             }
 
         }
     }
+
     private class WelcomeMessageHolder extends RecyclerView.ViewHolder {
         TextView messageText;
 
         WelcomeMessageHolder(View itemView) {
             super(itemView);
 
-            messageText =  itemView.findViewById(R.id.text_message_body);
+            messageText = itemView.findViewById(R.id.text_message_body);
         }
 
         void bind(ConversationMessage message) {
-            messageText.setText(Html.fromHtml(message.content));;
+            messageText.setText(config.getHtml(message.content));
         }
     }
-    private void draw_file(JSONObject o,ImageView inputImage,View fileview,TextView filename){
-
-
-        try{
-            String type = o.getString("type");
-            String size = o.getString("size");
-            String name = o.getString("name");
-            String url = o.getString("url");
-            CircularProgressDrawable circularProgressDrawable = new CircularProgressDrawable(context);
-            circularProgressDrawable.setStrokeWidth(  5f);
-            circularProgressDrawable.setCenterRadius(  30f);
-            circularProgressDrawable.start();
-
-            float scale = context.getResources().getDisplayMetrics().density;
-            int pixels = (int) (20 * scale + 0.5f);
-            inputImage.getLayoutParams().width = pixels;
-            inputImage.requestLayout();
-
-            inputImage.setImageDrawable(circularProgressDrawable);
-
-            inputImage.getDrawable().setColorFilter(config.colorCode, PorterDuff.Mode.SRC_ATOP);
-
-            fileview.setTag(url);
-            fileview.setOnClickListener(fileDownload);
-
-            filename.setText(name);
-            filename.setVisibility(View.VISIBLE);
-
-
-
-            if(type.contains("image")) {
-                pixels = (int) (200 * scale + 0.5f);
-                inputImage.getLayoutParams().width = pixels;
-//                inputImage.getLayoutParams().height = pixels;
-                inputImage.requestLayout();
-
-                Glide.with(context).load(url).placeholder(circularProgressDrawable)
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .override(pixels,Target.SIZE_ORIGINAL)
-                        .into(inputImage);
-                fileview.setOnClickListener(null);
-                filename.setVisibility(View.GONE);
+    void bindBotData(ConversationMessage message, RecyclerView botRecyclerView) {
+        if (message.botData != null) {
+            Json data = message.botData;
+            String title = "";
+            List<Map> buttons = null;
+            Map x = (Map) data.object;
+            List<Map> maps = message.botData.array;;
+            if(data.is_object){
+                maps = (List) x.get("botData");
             }
-            else if(type.contains("application/pdf")){
-                inputImage.setImageResource(R.drawable.filepdf);
+            for(int i = 0; i < maps.size(); i++){
+                if(maps.get(i).containsKey("type")){
+                    String type = (String) maps.get(i).get("type");
+                    if(type.contentEquals("text")){
+                        title = (String) maps.get(i).get("text");
+//                        buttons = maps;
+                    } else if(type.contentEquals("carousel")){
+                        List<Map> elements = (List) maps.get(i).get("elements");
+                        if(elements.size() == 1) {
+                            buttons = (List) elements.get(0).get("buttons");
+                        }
+                    } else if(type.contentEquals("custom")){
+                        buttons = (List) maps.get(i).get("quick_replies");
+                    }
+                }
             }
-            else if(type.contains("application")&&type.contains("word")){
-                inputImage.setImageResource(R.drawable.fileword);
+            if(buttons!=null) {
+                LinearLayoutManager layoutManager = new LinearLayoutManager(this.config.context, LinearLayoutManager.VERTICAL, false);
+//                botRecyclerView.addItemDecoration(new DividerItemDecoration(this.config.context, DividerItemDecoration.VERTICAL));
+                botRecyclerView.setLayoutManager(layoutManager);
+                botRecyclerView.setVisibility(View.VISIBLE);
+                botRecyclerView.setAdapter(new BotQuestionAdapter(activity, title, buttons));
             }
-            else{
-                inputImage.setImageResource(R.drawable.file);
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
+        } else {
+            botRecyclerView.setVisibility(View.GONE);
         }
     }
-//    private SimpleTarget target = new SimpleTarget<Bitmap>() {
-//        @Override
-//        public void onResourceReady(Bitmap bitmap, @Nullable Transition<? super Bitmap> transition) {
-//            // do something with the bitmap
-//            // set it to an ImageView
-//            inputImage.setImageBitmap(bitmap);
-//        }
-//    };
+    void bindAttachments(ConversationMessage message, RecyclerView fileRecyclerView) {
+        if (message.attachments != null) {
+            if (message.attachments.size() > 0) {
+                List<FileAttachment> fileAttachmentList = new ArrayList<>();
+                for (int i = 0; i < message.attachments.size(); i++) {
+                    FileAttachment fileAttachment = new FileAttachment();
+                    fileAttachment.setName(message.attachments.get(i).getName());
+                    fileAttachment.setSize(message.attachments.get(i).getSize());
+                    fileAttachment.setType(message.attachments.get(i).getType());
+                    fileAttachment.setUrl(message.attachments.get(i).getUrl());
+                    fileAttachmentList.add(fileAttachment);
+                }
+                GridLayoutManager gridLayoutManager;
+                if (fileAttachmentList.size() > 2) {
+                    gridLayoutManager = new GridLayoutManager(activity, 3);
+                } else {
+                    gridLayoutManager = new GridLayoutManager(activity, fileAttachmentList.size());
+                }
+                fileRecyclerView.setVisibility(View.VISIBLE);
+                fileRecyclerView.setLayoutManager(gridLayoutManager);
+                fileRecyclerView.setHasFixedSize(true);
+                fileRecyclerView.setAdapter(new FileAdapter(activity, fileAttachmentList));
+            } else {
+                fileRecyclerView.setVisibility(View.GONE);
+            }
+        } else {
+            fileRecyclerView.setVisibility(View.GONE);
+        }
+    }
+
 }

@@ -1,49 +1,54 @@
 package com.newmedia.erxeslibrary.configuration;
 
-import android.app.Activity;
 import android.content.Context;
-import android.net.ConnectivityManager;
+import android.os.Build;
+import android.util.Log;
 
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.subscription.WebSocketSubscriptionTransport;
-
-import com.newmedia.erxes.basic.type.AttachmentInput;
-import com.newmedia.erxes.basic.type.CustomType;
-import com.newmedia.erxeslibrary.graphqlfunction.GetGEO;
-import com.newmedia.erxeslibrary.graphqlfunction.GetKnowledge;
-import com.newmedia.erxeslibrary.ErxesObserver;
-import com.newmedia.erxeslibrary.graphqlfunction.GetInteg;
-import com.newmedia.erxeslibrary.graphqlfunction.GetSup;
-import com.newmedia.erxeslibrary.graphqlfunction.Getconv;
-import com.newmedia.erxeslibrary.graphqlfunction.Getmess;
-import com.newmedia.erxeslibrary.graphqlfunction.Insertmess;
-import com.newmedia.erxeslibrary.graphqlfunction.Insertnewmess;
-import com.newmedia.erxeslibrary.graphqlfunction.SendLead;
-import com.newmedia.erxeslibrary.graphqlfunction.SetConnect;
-import com.newmedia.erxeslibrary.helper.JsonCustomTypeAdapter2;
-
+import com.erxes.io.opens.type.AttachmentInput;
+import com.erxes.io.opens.type.CustomType;
+import com.newmedia.erxeslibrary.connection.ChangeOperator;
+import com.newmedia.erxeslibrary.connection.GetBotInitialMessage;
+import com.newmedia.erxeslibrary.connection.GetConversation;
+import com.newmedia.erxeslibrary.connection.GetConversationDetail;
+import com.newmedia.erxeslibrary.connection.GetIntegration;
+import com.newmedia.erxeslibrary.connection.GetKnowledge;
+import com.newmedia.erxeslibrary.connection.GetLead;
+import com.newmedia.erxeslibrary.connection.GetMessage;
+import com.newmedia.erxeslibrary.connection.GetSupporter;
+import com.newmedia.erxeslibrary.connection.InsertMessage;
+import com.newmedia.erxeslibrary.connection.SendLead;
+import com.newmedia.erxeslibrary.connection.SetConnect;
+import com.newmedia.erxeslibrary.connection.WidgetBotRequest;
+import com.newmedia.erxeslibrary.connection.helper.JsonCustomTypeAdapter;
+import com.newmedia.erxeslibrary.connection.helper.Tls12SocketFactory;
+import com.newmedia.erxeslibrary.helper.ErxesHelper;
+import com.newmedia.erxeslibrary.utils.ErxesObserver;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.realm.Realm;
-import okhttp3.CipherSuite;
+import javax.net.ssl.SSLContext;
+
 import okhttp3.ConnectionSpec;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.TlsVersion;
+//import okhttp3.logging.HttpLoggingInterceptor;
 
-public class ErxesRequest {
-    final private String TAG = "erxesrequest";
-
+public final class ErxesRequest {
     public ApolloClient apolloClient;
-    private OkHttpClient okHttpClient;
-    private Activity activity;
+    private OkHttpClient.Builder okHttpClientBuilder;
+    private final Context context;
     private List<ErxesObserver> observers;
-    private Config config;
+    private final Config config;
 
-    static public ErxesRequest erxesRequest;
+    private static ErxesRequest erxesRequest;
 
     static public ErxesRequest getInstance(Config config) {
         if (erxesRequest == null)
@@ -52,128 +57,174 @@ public class ErxesRequest {
     }
 
     private ErxesRequest(Config config) {
-        this.activity = config.activity;
+        this.context = config.context;
         this.config = config;
-        Realm.init(activity);
-        Helper.Init(activity);
+        ErxesHelper.Init(context);
     }
 
-    public void set_client() {
-//        ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
-//                .tlsVersions(TlsVersion.TLS_1_0, TlsVersion.TLS_1_1, TlsVersion.TLS_1_2, TlsVersion.SSL_3_0)
-//                .cipherSuites(
-//                        CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-//                        CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
-//                        CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-//                        CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-//                        CipherSuite.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-//                        CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA)
-//                .build();
+    private final HashMap<HttpUrl, List<Cookie>> cookieStore = new HashMap<>();
 
-        if (config.HOST_3100 != null) {
-            okHttpClient = new OkHttpClient.Builder()
-//                    .connectionSpecs(Collections.singletonList(spec))
-                    .writeTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .addInterceptor(new AddCookiesInterceptor(this.activity))
-                    .addInterceptor(new ReceivedCookiesInterceptor(this.activity))
-                    .build();
+    void set_client() {
+        if (config.host3100 != null) {
+            OkHttpClient okHttpClient = getHttpClient();
+
             apolloClient = ApolloClient.builder()
-                    .serverUrl(config.HOST_3100)
+                    .serverUrl(config.host3100)
                     .okHttpClient(okHttpClient)
-                    .subscriptionTransportFactory(new WebSocketSubscriptionTransport.Factory(config.HOST_3300, okHttpClient))
+                    .subscriptionTransportFactory(new WebSocketSubscriptionTransport.Factory(config.host3300, okHttpClient))
                     .addCustomTypeAdapter(CustomType.JSON, new JsonCustomTypeAdapter())
-                    .addCustomTypeAdapter(CustomType.JSON, new JsonCustomTypeAdapter2())
                     .build();
         }
     }
 
-    public void setConnect(String email, String phone, boolean isUser, boolean isLogin, String data) {
-        if (!isNetworkConnected()) {
-            return;
-        }
-        SetConnect setConnect = new SetConnect(this, activity);
-        setConnect.run(email, phone, isUser, isLogin, data);
+    private OkHttpClient getHttpClient() {
+//        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+//        logging.setLevel(BuildConfig.DEBUG ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.NONE);
+
+        OkHttpClient.Builder client = new OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .cookieJar(new CookieJar() {
+                    @Override
+                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                        cookieStore.put(url, cookies);
+                    }
+
+                    @Override
+                    public List<Cookie> loadForRequest(HttpUrl url) {
+                        List<Cookie> cookies = cookieStore.get(url);
+                        return cookies != null ? cookies : new ArrayList<>();
+                    }
+                });
+//                .addInterceptor(logging);
+        return client.build();
     }
 
-    public void getGEO() {
-        if (!isNetworkConnected()) {
-            return;
+    private OkHttpClient.Builder enableTls12(OkHttpClient.Builder client) {
+        if (Build.VERSION.SDK_INT >= 16 && Build.VERSION.SDK_INT < 22) {
+            try {
+                SSLContext sc = SSLContext.getInstance("TLSv1.2");
+                sc.init(null, null, null);
+                client.sslSocketFactory(new Tls12SocketFactory(sc.getSocketFactory()));
+
+                ConnectionSpec cs = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                        .tlsVersions(TlsVersion.TLS_1_2)
+                        .build();
+
+                List<ConnectionSpec> specs = new ArrayList<>();
+                specs.add(cs);
+                specs.add(ConnectionSpec.COMPATIBLE_TLS);
+                specs.add(ConnectionSpec.CLEARTEXT);
+
+                client.connectionSpecs(specs);
+            } catch (Exception exc) {
+                Log.e("OkHttpTLSCompat", "Error while setting TLS 1.2", exc);
+            }
         }
-        GetGEO getGEO = new GetGEO(this, activity);
-        getGEO.run();
+
+        return client;
     }
 
-    public void getIntegration() {
-        if (!isNetworkConnected()) {
+    public void setConnect(boolean isCheckRequired, boolean isUser) {
+        if (!config.isNetworkConnected()) {
             return;
         }
-        GetInteg getIntegration = new GetInteg(this, activity);
+        SetConnect setConnect = new SetConnect(this, context);
+        setConnect.run(isCheckRequired, isUser);
+    }
+
+    void getIntegration() {
+        if (!config.isNetworkConnected()) {
+            return;
+        }
+        GetIntegration getIntegration = new GetIntegration(this, context);
         getIntegration.run();
     }
 
-    public void InsertMessage(String message, String conversationId, List<AttachmentInput> list) {
-        if (!isNetworkConnected()) {
+    public void InsertMessage(String message, List<AttachmentInput> list, String type) {
+        if (!config.isNetworkConnected()) {
             return;
         }
-        Insertmess insertmessage = new Insertmess(this, activity);
-        insertmessage.run(message, conversationId, list);
-    }
-
-    public void InsertNewMessage(final String message, List<AttachmentInput> list) {
-        if (!isNetworkConnected()) {
-            return;
-        }
-
-        Insertnewmess insertnewmessage = new Insertnewmess(this, activity);
-        insertnewmessage.run(message, list);
+        InsertMessage insertmessage = new InsertMessage(this, context);
+        insertmessage.run(message, list, type);
     }
 
     public void getConversations() {
-        if (!isNetworkConnected()) {
+        if (!config.isNetworkConnected())
             return;
-        }
-        Getconv getconversation = new Getconv(this, activity);
+        GetConversation getconversation = new GetConversation(this, context);
         getconversation.run();
-
-
     }
 
     public void getMessages(String conversationid) {
-        if (!isNetworkConnected()) {
+        if (!config.isNetworkConnected())
             return;
-        }
-        Getmess getmess = new Getmess(this, activity);
-        getmess.run(conversationid);
+        GetMessage getMessage = new GetMessage(this, context);
+        getMessage.run(conversationid);
 
     }
 
     public void getSupporters() {
-        if (!isNetworkConnected()) {
+        if (!config.isNetworkConnected())
             return;
-        }
-        GetSup getSup = new GetSup(this, activity);
-        getSup.run();
+        GetSupporter getSupporter = new GetSupporter(this, context);
+        getSupporter.run();
+    }
+
+    public void getConversationDetail() {
+        if (!config.isNetworkConnected())
+            return;
+        GetConversationDetail getConversationDetail = new GetConversationDetail(this, context);
+        getConversationDetail.run();
     }
 
     public void getFAQ() {
-        if (!isNetworkConnected()) {
+        if (!config.isNetworkConnected()) {
             return;
         }
-        GetKnowledge getSup = new GetKnowledge(this, activity);
+        GetKnowledge getSup = new GetKnowledge(this, context);
         getSup.run();
     }
 
-    public void sendLead() {
-        if (!isNetworkConnected()) {
+    public void getLead() {
+        if (!config.isNetworkConnected()) {
             return;
         }
-        SendLead sendLead = new SendLead(this, activity);
+        GetLead getLead = new GetLead(this, context);
+        getLead.run();
+    }
+
+    public void sendLead() {
+        if (!config.isNetworkConnected()) {
+            return;
+        }
+        SendLead sendLead = new SendLead(this, context);
         sendLead.run();
+    }
+
+    public void sendWidgetBotRequest(String content, String type, String payload) {
+        if (!config.isNetworkConnected()) {
+            return;
+        }
+        WidgetBotRequest widgetBotRequest = new WidgetBotRequest(this, context);
+        widgetBotRequest.run(content, type, payload);
+    }
+
+    public void changeOperator(String conversationid) {
+        if (!config.isNetworkConnected()) {
+            return;
+        }
+        ChangeOperator changeOperator = new ChangeOperator(this, context);
+        changeOperator.run(conversationid);
+    }
+
+    public void getBotInitialMessage() {
+        if (!config.isNetworkConnected()) {
+            return;
+        }
+        GetBotInitialMessage getBotInitialMessage = new GetBotInitialMessage(this, context);
+        getBotInitialMessage.run();
     }
 
     public void add(ErxesObserver e) {
@@ -183,45 +234,16 @@ public class ErxesRequest {
         observers.add(e);
     }
 
-    //    public void isMessengerOnline(){
-//        if(!isNetworkConnected()){
-//            return;
-//        }
-//
-//        apolloClient.query(IsMessengerOnlineQuery.builder().integrationId(config.integrationId)
-//                .build()).enqueue(new ApolloCall.Callback<IsMessengerOnlineQuery.Data>() {
-//            @Override
-//            public void onResponse(@Nonnull Response<IsMessengerOnlineQuery.Data> response) {
-//                if(!response.hasErrors()){
-//                    config.isMessengerOnline =  response.data().isMessengerOnline();
-//                    notefyAll(ReturnType.IsMessengerOnline,null,null);
-//                }
-//                else
-//                    notefyAll(ReturnType.SERVERERROR,null,null);
-//            }
-//
-//            @Override
-//            public void onFailure(@Nonnull ApolloException e) {
-//                Log.d(TAG,"IsMessengerOnline failed ");
-//                notefyAll(ReturnType.CONNECTIONFAILED,null,null);
-//            }
-//        });
-//    }
-    public boolean isNetworkConnected() {
-        ConnectivityManager cm = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
-        return cm.getActiveNetworkInfo() != null;
-    }
-
     public void remove(ErxesObserver e) {
         if (observers == null)
             observers = new ArrayList<>();
         observers.clear();
     }
 
-    public void notefyAll(int returnType, String conversationId, String message) {
+    public void notefyAll(int returnType, String conversationId, String message, Object object) {
         if (observers == null) return;
         for (int i = 0; i < observers.size(); i++) {
-            observers.get(i).notify(returnType, conversationId, message);
+            observers.get(i).notify(returnType, conversationId, message, object);
         }
     }
 }

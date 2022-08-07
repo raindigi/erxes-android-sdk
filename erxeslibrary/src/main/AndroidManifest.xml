@@ -1,34 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.newmedia.erxeslibrary">
 
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
-    <application>
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
+    <application android:largeHeap="true"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".ui.ErxesActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme_erxes_dialog"
+            android:windowSoftInputMode="adjustResize|stateHidden"/>
+        <activity
+            android:name=".ui.conversations.ConversationListActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme_erxes_dialog"
+            android:windowSoftInputMode="adjustResize|stateHidden"/>
+        <activity
+            android:name=".ui.message.MessageActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme_erxes_dialog"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
             android:name=".ui.faq.FaqDetailActivity"
+            android:launchMode="singleTask"
             android:theme="@style/Theme_erxes_dialog" />
         <activity
             android:name=".ui.faq.FaqActivity"
+            android:launchMode="singleTask"
             android:theme="@style/Theme_erxes_dialog" />
-        <activity
-            android:name=".ui.login.ErxesActivity"
-            android:theme="@style/Theme_erxes_dialog"/>
-        <activity
-            android:name=".ui.conversations.ConversationListActivity"
-            android:theme="@style/Theme_erxes_dialog" />
-        <activity
-            android:name=".ui.message.MessageActivity"
-            android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme_erxes_dialog" />
-
-        <service android:name=".configuration.ListenerService" />
-
-
+        <service android:name=".connection.service.ListenerService" />
     </application>
 
 </manifest>

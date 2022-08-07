@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    android:id="@+id/itemClick"
+    android:background="?android:attr/selectableItemBackground"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2px"
-        android:background="#f9f9f9" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingLeft="@dimen/main_margin"
-        android:paddingRight="@dimen/main_margin"
-        android:paddingBottom="@dimen/main_margin_half"
-        android:paddingTop="@dimen/main_margin_half">
+        android:paddingRight="@dimen/main_margin">
         <ImageView
             android:id="@+id/profile_image"
             android:layout_gravity="center_vertical"
@@ -27,6 +25,10 @@
             android:layout_height="60dp"
             android:paddingLeft="16dp"
             android:orientation="vertical">
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/black_10"/>
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -37,10 +39,9 @@
                     android:id="@+id/name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="name"
                     android:singleLine="true"
                     android:gravity="bottom"
-                    android:textSize="16sp"
+                    android:textSize="15sp"
                     android:textColor="#000"/>
                 <View
                     android:layout_width="0dp"
@@ -51,17 +52,16 @@
                     android:layout_width="wrap_content"
                     android:layout_gravity="bottom"
                     android:singleLine="true"
-                    android:layout_height="wrap_content"
-                    android:text="date" />
+                    android:textSize="12sp"
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
             <TextView
                 android:id="@+id/content"
                 android:layout_width="wrap_content"
                 android:layout_weight="1"
-                android:singleLine="true"
+                android:maxLines="1"
                 android:layout_gravity="top"
-                android:layout_height="0dp"
-                android:text="date" />
+                android:layout_height="0dp"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

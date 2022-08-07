@@ -2,120 +2,134 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearlayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="bottom"
     android:background="#00000000"
-    android:id="@+id/linearlayout"
+    android:gravity="bottom"
+    android:orientation="vertical"
     tools:context=".ui.faq.FaqDetailActivity">
-    <android.support.constraint.ConstraintLayout
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/container"
         android:background="@drawable/cornerbackground">
-        <com.newmedia.erxeslibrary.customeview.RoundedCornerLayout
-            android:id="@+id/info_header"
-            app:layout_constraintTop_toTopOf="parent"
-            android:background="@color/colorPrimary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <android.support.constraint.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/login_bar_height_small"
-                android:background="@drawable/pattern_repeat"
-                android:paddingLeft="@dimen/main_margin"
-                android:paddingRight="@dimen/main_margin"
-                android:orientation="horizontal">
-                <LinearLayout
-                    android:id="@+id/back"
-                    android:onClick="Click_back"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:gravity="center">
-                    <ImageView
-                        android:layout_width="@dimen/action_size"
-                        android:layout_height="@dimen/action_size"
-                        android:src="@drawable/erxes_left_arrow" />
-                </LinearLayout>
-                <LinearLayout
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintLeft_toRightOf="@id/back"
-                    app:layout_constraintRight_toLeftOf="@id/close"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/general"
-                            android:text="generel"
-                            android:textColor="#fff"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:textSize="@dimen/header_big"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/close"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:gravity="center">
-                    <ImageView
-                        android:layout_width="@dimen/action_size"
-                        android:layout_height="@dimen/action_size"
-                        android:src="@drawable/erxes_cancel" />
-                </LinearLayout>
-            </android.support.constraint.ConstraintLayout>
-        </com.newmedia.erxeslibrary.customeview.RoundedCornerLayout>
-
-        <LinearLayout
-            app:layout_constraintTop_toBottomOf="@id/info_header"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginTop="16dp"
-            android:background="#fff"
-            android:orientation="vertical"
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginRight="@dimen/main_margin"
-            android:layout_marginLeft="@dimen/main_margin">
-            <TextView
-                android:id="@+id/article_header"
-                android:textStyle="bold"
-                android:textSize="26sp"
-                android:textColor="#000"
+            android:background="@color/md_white_1000"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/info_header">
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-            <TextView
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp"
-                android:textColor="#686868"
-                android:id="@+id/article_date"
+                android:layout_height="match_parent"
+                android:padding="@dimen/main_margin"
+                android:background="#fff"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/article_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#000"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/article_date"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:textSize="13sp"
+                    android:textColor="#686868" />
+
+                <TextView
+                    android:id="@+id/article_content1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:textColor="#494949" />
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <WebView
+                        android:id="@+id/article_content2"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"/>
+
+                    <include layout="@layout/loader_view"/>
+                </RelativeLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:background="@drawable/toolbarshadow"
+            app:layout_constraintTop_toBottomOf="@+id/info_header" />
+
+        <com.newmedia.erxeslibrary.helper.RoundedCornerLayout
+            android:id="@+id/info_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorPrimary"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-            <TextView
-                android:textColor="#494949"
-                android:layout_marginBottom="10dp"
-                android:id="@+id/article_content1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-            <TextView
-                android:textColor="#494949"
-                android:id="@+id/article_content2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-    </android.support.constraint.ConstraintLayout>
+                android:layout_height="wrap_content"
+                android:background="@drawable/pattern_repeat"
+                android:minHeight="@dimen/login_bar_height_small"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/main_margin_10_dec"
+                android:paddingRight="@dimen/main_margin_10_dec">
+
+                <ImageView
+                    android:id="@+id/backImageView"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:padding="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/cancelImageView"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:padding="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/main_margin_10_dec"
+                    android:layout_marginRight="@dimen/main_margin_10_dec"
+                    android:orientation="vertical"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintLeft_toRightOf="@id/backImageView"
+                    app:layout_constraintRight_toLeftOf="@id/cancelImageView"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/general"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textSize="@dimen/header_big"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.newmedia.erxeslibrary.helper.RoundedCornerLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

@@ -1,0 +1,246 @@
+mutation widgetsMessengerConnect($brandCode: String!, $email: String, $phone: String, $isUser:Boolean, $data: JSON, $companyData: JSON, $code: String){
+    widgetsMessengerConnect (brandCode: $brandCode, email: $email, phone: $phone, isUser:$isUser, data: $data, companyData: $companyData, code: $code){
+        integrationId
+        uiOptions
+        languageCode
+        messengerData
+        customerId
+        brand{
+            name
+            description
+        }
+    }
+}
+mutation widgetsInsertMessage($integrationId: String!, $customerId: String!, $message: String, $conversationId: String, $attachments: [AttachmentInput], $contentType: String){
+    widgetsInsertMessage(integrationId:$integrationId,customerId: $customerId,message: $message,conversationId: $conversationId,attachments: $attachments, contentType : $contentType){
+        ...MessageFragment
+    }
+}
+
+mutation widgetBotRequest(
+    $message: String!
+    $payload: String!
+    $type: String!
+    $conversationId: String
+    $customerId: String
+    $visitorId: String
+    $integrationId: String!
+) {
+    widgetBotRequest(
+        message: $message
+        payload: $payload
+        type: $type
+        conversationId: $conversationId
+        customerId: $customerId
+        visitorId: $visitorId
+        integrationId: $integrationId
+    )
+}
+
+query widgetsConversations($integrationId: String!,$customerId: String!){
+    widgetsConversations(integrationId: $integrationId,customerId: $customerId) {
+        _id
+        customerId
+        integrationId
+        status
+        content
+        createdAt
+        participatedUsers {
+            details {
+                avatar
+                fullName
+            }
+        }
+    }
+}
+
+fragment MessageFragment on ConversationMessage {
+    _id
+    conversationId
+    customerId
+    content
+    createdAt
+    internal
+    fromBot
+    botData
+    contentType
+    videoCallData {
+        url
+        name
+        status
+    }
+    attachments {
+        size
+        url
+        type
+        name
+    }
+    user {
+        _id
+        details {
+            avatar
+            fullName
+        }
+    }
+}
+
+query widgetsMessages($conversationId: String){
+    widgetsMessages(conversationId: $conversationId) {
+        ...MessageFragment
+    }
+}
+
+query widgetsConversationDetail($id: String, $integ : String!){
+    widgetsConversationDetail(_id: $id, integrationId: $integ) {
+        isOnline
+        operatorStatus
+        participatedUsers {
+            _id
+            details {
+                avatar
+                description
+                fullName
+                shortName
+                position
+            }
+        }
+    }
+}
+query widgetsMessengerSupporters($integ : String!) {
+    widgetsMessengerSupporters(integrationId: $integ) {
+        isOnline
+        serverTime
+        supporters {
+            _id
+            details {
+                avatar
+                shortName
+                position
+                description
+                fullName
+            }
+        }
+    }
+}
+
+query widgetsGetMessengerIntegration($brandCode: String!){
+    widgetsGetMessengerIntegration(brandCode: $brandCode) {
+        _id
+        name
+        languageCode
+        uiOptions
+        messengerData
+    }
+}
+
+query knowledgeBaseTopicDetail($topicId: String!){
+    knowledgeBaseTopicDetail(_id: $topicId) {
+        _id
+        title
+        description
+        color
+        languageCode
+        categories{
+            _id
+            numOfArticles
+            title
+            description
+            icon
+            articles {
+                _id
+                title
+                summary
+                content
+                createdBy
+                createdDate
+                modifiedBy
+                modifiedDate
+            }
+        }
+    }
+}
+
+query formDetail($formId: String!) {
+    formDetail(_id: $formId) {
+        _id
+        title
+        description
+        buttonText
+        fields {
+            _id
+            type
+            text
+            description
+            options
+            isRequired
+            name
+            validation
+            order
+        }
+    }
+}
+
+mutation widgetsLeadConnect($brandCode: String!, $formCode: String!) {
+    widgetsLeadConnect(brandCode: $brandCode, formCode: $formCode) {
+        integration {
+            _id
+            kind
+            name
+            brandId
+            languageCode
+            leadData
+        }
+        form {
+            _id
+            title
+            description
+            buttonText
+            fields {
+                _id
+                contentType
+                type
+                validation
+                text
+                name
+                description
+                options
+                isRequired
+                order
+                isVisible
+            }
+        }
+    }
+}
+
+mutation widgetsSaveLead($integrationId: String!, $formId: String!, $submissions: [FieldValueInput],$browserInfo: JSON!) {
+    widgetsSaveLead(integrationId: $integrationId, formId: $formId, submissions: $submissions, browserInfo: $browserInfo) {
+        status
+        errors{
+            fieldId
+            code
+            text
+        }
+        messageId
+    }
+}
+
+mutation changeConversationOperator($_id: String!, $operatorStatus: String!) {
+    changeConversationOperator(_id: $_id, operatorStatus: $operatorStatus)
+}
+
+mutation widgetGetBotInitialMessage($integrationId: String) {
+    widgetGetBotInitialMessage(integrationId: $integrationId)
+}
+
+subscription ConversationMessageInserted($id: String!){
+    conversationMessageInserted(_id: $id) {
+        ...MessageFragment
+    }
+}
+
+subscription ConversationChanged($id: String!) {
+    conversationChanged(_id: $id) {
+        conversationId
+        type
+    }
+}

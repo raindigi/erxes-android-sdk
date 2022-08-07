@@ -1,67 +1,70 @@
 package com.newmedia.erxeslibrary.ui.faq;
 
 import android.app.Service;
+import android.content.pm.ActivityInfo;
 import android.graphics.Point;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.view.MotionEvent;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.newmedia.erxeslibrary.R;
 import com.newmedia.erxeslibrary.configuration.Config;
-import com.newmedia.erxeslibrary.configuration.DB;
-import com.newmedia.erxeslibrary.configuration.Helper;
-import com.newmedia.erxeslibrary.configuration.SoftKeyboard;
-import com.newmedia.erxeslibrary.model.ConversationMessage;
+import com.newmedia.erxeslibrary.helper.ErxesHelper;
+import com.newmedia.erxeslibrary.helper.SoftKeyboard;
 import com.newmedia.erxeslibrary.model.KnowledgeBaseCategory;
-import com.newmedia.erxeslibrary.model.User;
 import com.newmedia.erxeslibrary.ui.conversations.adapter.ArticleAdapter;
-
-import io.realm.Realm;
 
 public class FaqActivity extends AppCompatActivity {
     private ViewGroup container;
     private Point size;
     private Config config;
-    private TextView general,general_number,general_description;
-    private Realm realm;
-    private RecyclerView recyclerView;
+    private ImageView backImageView, cancelImageView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (android.os.Build.VERSION.SDK_INT != Build.VERSION_CODES.O) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+        config = Config.getInstance(this);
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_faq);
-        realm = DB.getDB();
-        config = Config.getInstance(this);
+
+        config.setActivityConfig(this);
         load_findViewByid();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        config.setActivityConfig(this);
         if(config.customerId == null) {
             this.finish();
         }
     }
 
-    public void Click_back(View v){
-        finish();
-    }
     private void load_findViewByid(){
         container = this.findViewById(R.id.container);
+        backImageView = this.findViewById(R.id.backImageView);
+        cancelImageView = this.findViewById(R.id.cancelImageView);
+        initIcon();
 
-        size = Helper.display_configure(this,container,"#00000000");
+        size = ErxesHelper.display_configure(this,container,"#00000000");
         InputMethodManager im = (InputMethodManager) getSystemService(Service.INPUT_METHOD_SERVICE);
 
         SoftKeyboard softKeyboard;
-        softKeyboard = new SoftKeyboard((ViewGroup)this.findViewById(R.id.linearlayout), im);
+        softKeyboard = new SoftKeyboard(this.findViewById(R.id.linearlayout), im);
         softKeyboard.setSoftKeyboardCallback(new SoftKeyboard.SoftKeyboardChanged() {
             @Override
             public void onSoftKeyboardHide() {
@@ -85,55 +88,52 @@ public class FaqActivity extends AppCompatActivity {
             }
         });
         this.findViewById(R.id.info_header).setBackgroundColor(config.colorCode);
-        this.findViewById(R.id.close).setOnTouchListener(touchListener);
-        this.findViewById(R.id.back).setOnTouchListener(touchListener);
-        recyclerView = this.findViewById(R.id.recycler_view);
-        general = this.findViewById(R.id.general);
-        general_number = this.findViewById(R.id.general_number);
-        general_description = this.findViewById(R.id.general_description);
+        this.findViewById(R.id.cancelImageView).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                logout();
+            }
+        });
+        this.findViewById(R.id.backImageView).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+        this.findViewById(R.id.cancelImageView).setOnClickListener(v -> logout());
+        this.findViewById(R.id.backImageView).setOnClickListener(v -> finish());
+        RecyclerView recyclerView = this.findViewById(R.id.recycler_view);
+        TextView general = this.findViewById(R.id.general);
+        general.setTextColor(config.textColorCode);
+        TextView generalNumber = this.findViewById(R.id.general_number);
+        generalNumber.setTextColor(config.textColorCode);
+        TextView generalDescription = this.findViewById(R.id.general_description);
+        generalDescription.setTextColor(config.textColorCode);
         String id = getIntent().getStringExtra("id");
         if( id != null) {
-            KnowledgeBaseCategory knowledgeBaseCategory = realm.where(KnowledgeBaseCategory.class).equalTo("_id",id).findFirst();
+            KnowledgeBaseCategory knowledgeBaseCategory = null;
+            String categoryId = null;
+            for (int i = 0; i < config.knowledgeBaseTopic.categories.size(); i ++) {
+                if (config.knowledgeBaseTopic.categories.get(i).id.equals(id)) {
+                    knowledgeBaseCategory = config.knowledgeBaseTopic.categories.get(i);
+                    categoryId = knowledgeBaseCategory.id;
+                    break;
+                }
+            }
             general.setText(knowledgeBaseCategory.title);
-            general_number.setText("("+knowledgeBaseCategory.numOfArticles+")");
-            general_description.setText(knowledgeBaseCategory.description);
-            recyclerView.setAdapter(new ArticleAdapter(this, knowledgeBaseCategory.articles));
+            generalNumber.setText("("+knowledgeBaseCategory.numOfArticles+")");
+            generalDescription.setText(knowledgeBaseCategory.description);
+            recyclerView.setAdapter(new ArticleAdapter(this, knowledgeBaseCategory.articles,categoryId));
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
     }
-    private View.OnTouchListener touchListener =  new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(final View v, MotionEvent event) {
 
-            if(event.getAction() == MotionEvent.ACTION_DOWN){
-                FaqActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        v.setBackgroundResource(R.drawable.action_background);
-                    }
-                });
-            }
-            else if(event.getAction() == MotionEvent.ACTION_UP){
-                FaqActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        v.setBackgroundResource(0);
-                        if(v.getId() == R.id.close)
-                            logout(null);
-                        else if(v.getId() == R.id.back)
-                            Click_back(null);
-                    }
-                });
-            }
-            return true;
-        }
-    };
-    public void logout(View v){
-        realm.beginTransaction();
-        realm.delete(ConversationMessage.class);
-        realm.delete(User.class);
-        realm.commitTransaction();
-        config.Logout();
-        finish();
+    private void initIcon() {
+        Glide.with(this).load(config.getBackIcon(this,config.textColorCode)).into(backImageView);
+        Glide.with(this).load(config.getLogoutIcon(this,config.textColorCode)).into(cancelImageView);
+    }
+
+    public void logout(){
+        config.Logout(this);
     }
 }

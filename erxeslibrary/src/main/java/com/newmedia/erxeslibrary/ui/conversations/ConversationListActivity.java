@@ -1,192 +1,193 @@
 package com.newmedia.erxeslibrary.ui.conversations;
 
+import android.app.Activity;
+import android.app.Service;
 import android.content.Intent;
-import android.graphics.Color;
+import android.content.pm.ActivityInfo;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.net.Uri;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.TabLayout;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.newmedia.erxeslibrary.CustomViewPager;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.ColorUtils;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.apollographql.apollo.ApolloSubscriptionCall;
+import com.apollographql.apollo.api.Response;
+import com.apollographql.apollo.rx3.Rx3Apollo;
+import com.bumptech.glide.Glide;
+import com.erxes.io.opens.ConversationChangedSubscription;
+import com.erxes.io.saas.SaasConversationChangedSubscription;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.tabs.TabLayout;
+import com.newmedia.erxeslibrary.R;
 import com.newmedia.erxeslibrary.configuration.Config;
-import com.newmedia.erxeslibrary.configuration.Helper;
-import com.newmedia.erxeslibrary.configuration.ReturnType;
 import com.newmedia.erxeslibrary.configuration.ErxesRequest;
-import com.newmedia.erxeslibrary.configuration.ListenerService;
-import com.newmedia.erxeslibrary.DataManager;
-import com.newmedia.erxeslibrary.ErxesObserver;
+import com.newmedia.erxeslibrary.connection.service.ListenerService;
+import com.newmedia.erxeslibrary.helper.CustomViewPager;
+import com.newmedia.erxeslibrary.helper.ErxesHelper;
+import com.newmedia.erxeslibrary.helper.FileInfo;
+import com.newmedia.erxeslibrary.helper.SoftKeyboard;
+import com.newmedia.erxeslibrary.model.Conversation;
+import com.newmedia.erxeslibrary.model.ConversationMessage;
+import com.newmedia.erxeslibrary.ui.ErxesActivity;
 import com.newmedia.erxeslibrary.ui.conversations.adapter.SupportAdapter;
 import com.newmedia.erxeslibrary.ui.conversations.adapter.TabAdapter;
 import com.newmedia.erxeslibrary.ui.conversations.fragments.FaqFragment;
 import com.newmedia.erxeslibrary.ui.conversations.fragments.SupportFragment;
-import com.newmedia.erxeslibrary.ui.message.MessageActivity;
-import com.newmedia.erxeslibrary.R;
-import com.newmedia.erxeslibrary.ui.login.ErxesActivity;
+import com.newmedia.erxeslibrary.utils.DataManager;
+import com.newmedia.erxeslibrary.utils.ErxesObserver;
+import com.newmedia.erxeslibrary.utils.ReturntypeUtil;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import io.reactivex.rxjava3.subscribers.DisposableSubscriber;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 public class ConversationListActivity extends AppCompatActivity implements ErxesObserver {
 
-    static private String TAG = "ConversationListActivity";
-    static public boolean chat_is_going = false;
+    public static boolean chatIsGoing = false;
 
     private RecyclerView supporterView;
-    private TextView welcometext, date, title;
-    private CustomViewPager viewpager;
-    private ViewGroup info_header, container;
-    private Config config;
+    private TextView welcometext, date, title, timeZone, serverTime;
+    private ViewGroup infoHeader, container, parentLayout;
+    public Config config;
     private ErxesRequest erxesRequest;
     private DataManager dataManager;
     private TabAdapter tabAdapter;
     private TabLayout tabLayout;
-    public boolean isFirstStart = false;
-    private ImageView fb, tw, yt;
+    private ImageView cancelImageView;
+    private LinearLayout tabsContainer;
+    private Intent intent;
+    private final List<String> disposabledChanged = new ArrayList<>();
+    private final CompositeDisposable disposablesChanged = new CompositeDisposable();
+    private ApolloSubscriptionCall<ConversationChangedSubscription.Data> opensourceChangedCall;
+    private ApolloSubscriptionCall<SaasConversationChangedSubscription.Data> saasChangedCall;
+    public List<Conversation> conversations = new ArrayList<>();
+    public Point size;
 
     @Override
-    public void notify(final int returnType, final String conversationId, final String message) {
-        this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                switch (returnType) {
-                    case ReturnType.Subscription:
-                    case ReturnType.Getconversation:
-                        Log.d(TAG, "here changed");
-//                        recyclerView.getAdapter().notifyDataSetChanged();
-                        break;
-                    case ReturnType.INTEGRATION_CHANGED:
-//                        info_header.setBackgroundColor(config.colorCode);
-//                        addnew_conversation.getBackground().setColorFilter(config.colorCode, PorterDuff.Mode.SRC_ATOP);
-                        break;
-                    case ReturnType.CONNECTIONFAILED:
-                        break;
-                    case ReturnType.LOGIN_SUCCESS:
-                        init();
-                        break;
-                    case ReturnType.SERVERERROR:
-                        Snackbar.make(container, message, Snackbar.LENGTH_SHORT).show();
-                        break;
-                    case ReturnType.LEAD:
-                        if (tabAdapter != null)
-                            ((SupportFragment) tabAdapter.getItem(0)).setLead();
-                        break;
-                    case ReturnType.FAQ:
-                        if (tabLayout != null) {
-                            tabLayout.setVisibility(View.VISIBLE);
-                            if (tabAdapter != null)
-                                ((FaqFragment) tabAdapter.getItem(1)).init();
+    public void notify(int returnType, String conversationId, String message, Object object) {
+        this.runOnUiThread(() -> {
+            switch (returnType) {
+                case ReturntypeUtil.COMINGNEWMESSAGE:
+                    if (object instanceof ConversationMessage)
+                        for (int i = 0; i < conversations.size(); i++) {
+                            if (conversations.get(i).id.equals(((ConversationMessage) object).conversationId)) {
+                                conversations.get(i).content = ((ConversationMessage) object).content;
+                                conversations.get(i).isread = false;
+                            }
                         }
-                        break;
-                    case ReturnType.savedLead:
-                        if (tabAdapter != null)
-                            ((SupportFragment) tabAdapter.getItem(0)).setLeadAgain();
-                        break;
-                    default:
-                        break;
-                }
+                    if (tabAdapter != null && ((SupportFragment) tabAdapter.getItem(0))
+                            .recyclerView != null) {
+                        ((SupportFragment) tabAdapter.getItem(0))
+                                .recyclerView.getAdapter().notifyDataSetChanged();
+                    }
+                    break;
+                case ReturntypeUtil.GETCONVERSATION:
+                    if (((List<Conversation>) object).size() > 0) {
+                        conversations.clear();
+                        conversations.addAll((List<Conversation>) object);
+                    }
+
+                    if (tabAdapter != null && ((SupportFragment) tabAdapter.getItem(0))
+                            .recyclerView != null) {
+                        ((SupportFragment) tabAdapter.getItem(0))
+                                .recyclerView.getAdapter().notifyDataSetChanged();
+                    }
+                    if (conversations.size() > 0) {
+                        initParentConversationChanged();
+                    }
+                    break;
+                case ReturntypeUtil.SERVERERROR:
+                    Snackbar.make(container, message, Snackbar.LENGTH_SHORT).show();
+                    break;
+                case ReturntypeUtil.LEAD:
+                    if (tabAdapter != null)
+                        ((SupportFragment) tabAdapter.getItem(0)).setLead();
+                    break;
+                case ReturntypeUtil.FAQ:
+                    if (tabAdapter != null) {
+                        tabsContainer.setVisibility(View.VISIBLE);
+                        ((FaqFragment) tabAdapter.getItem(1)).init();
+                    }
+                    break;
+                case ReturntypeUtil.SAVEDLEAD:
+                    if (tabAdapter != null)
+                        ((SupportFragment) tabAdapter.getItem(0)).setLeadThank();
+                    break;
+                case ReturntypeUtil.GETSUPPORTERS:
+                    if (supporterView != null && supporterView.getAdapter() != null)
+                        supporterView.getAdapter().notifyDataSetChanged();
+                    break;
+                default:
+                    break;
             }
         });
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        erxesRequest.remove(this);
-    }
-
-    private void startActivity() {
-        this.finish();
-        Intent a = new Intent(ConversationListActivity.this, ErxesActivity.class);
-        startActivity(a);
-    }
-
-    public void sendLead() {
-        erxesRequest.sendLead();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        config = Config.getInstance(this);
-        erxesRequest = ErxesRequest.getInstance(config);
-        erxesRequest.add(this);
-        if (config.customerId == null) {
-            startActivity();
-            return;
-        }
-        if (TextUtils.isEmpty(dataManager.getDataS(DataManager.email)) &&
-                TextUtils.isEmpty(dataManager.getDataS(DataManager.phone))) {
-            dataManager.setData(DataManager.customerId, null);
-            startActivity();
-            return;
-        } else if (dataManager.getDataB(DataManager.isUser)) {
-            erxesRequest.setConnect(
-                    dataManager.getDataS(DataManager.email),
-                    dataManager.getDataS(DataManager.phone),
-                    true,
-                    false,
-                    dataManager.getDataS(DataManager.customData));
-        } else if (!TextUtils.isEmpty(dataManager.getDataS(DataManager.email)))
-            erxesRequest.setConnect(
-                    dataManager.getDataS(DataManager.email), null, false, false, null
-            );
-        else
-            erxesRequest.setConnect(null, dataManager.getDataS(DataManager.phone), false, false, null);
-
-        erxesRequest.getGEO();
-        config.conversationId = null;
-
-        dataManager.setData("chat_is_going", true);
-
-//        LayerDrawable layerDrawable = (LayerDrawable) getResources()
-//                .getDrawable(R.drawable.pattern_color);
-//        GradientDrawable gradientDrawable = (GradientDrawable) layerDrawable
-//                .findDrawableByLayerId(R.id.background);
-//        gradientDrawable.setColor(config.colorCode);
-//        info_header.setBackground(layerDrawable);
-        info_header.setBackgroundColor(config.colorCode);
-
-        chat_is_going = true;
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        chat_is_going = false;
-        dataManager.setData("chat_is_going", false);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
-        config = Config.getInstance(this);
+        if (android.os.Build.VERSION.SDK_INT != Build.VERSION_CODES.O) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         erxesRequest = ErxesRequest.getInstance(config);
+        config = Config.getInstance(this);
+        ErxesHelper.changeLanguage(this, config.language);
         setContentView(R.layout.activity_conversation);
-        viewpager = findViewById(R.id.viewpager);
-        info_header = findViewById(R.id.info_header);
+
+        CustomViewPager viewpager = findViewById(R.id.viewpager);
+        infoHeader = findViewById(R.id.info_header);
         container = findViewById(R.id.container);
         welcometext = findViewById(R.id.greetingMessage);
+        timeZone = findViewById(R.id.timeZone);
+        serverTime = findViewById(R.id.serverTime);
         title = findViewById(R.id.greetingTitle);
-        this.findViewById(R.id.logout).setOnTouchListener(touchListener);
         date = findViewById(R.id.date);
         supporterView = findViewById(R.id.supporters);
-        fb = findViewById(R.id.fb);
-        tw = findViewById(R.id.tw);
-        yt = findViewById(R.id.yt);
+        ImageView fb = findViewById(R.id.fb);
+        ImageView tw = findViewById(R.id.tw);
+        ImageView yt = findViewById(R.id.yt);
         tabLayout = findViewById(R.id.tabs);
+        tabsContainer = findViewById(R.id.tabsContainer);
+        cancelImageView = this.findViewById(R.id.cancelImageView);
+        parentLayout = this.findViewById(R.id.linearlayout);
+        cancelImageView.setOnClickListener(v -> finish());
+        initIcon();
 
         dataManager = DataManager.getInstance(this);
+
+        intent = new Intent(ConversationListActivity.this, ListenerService.class);
 
         viewpager.setPagingEnabled(false);
         tabAdapter = new TabAdapter(getSupportFragmentManager(), this);
@@ -194,36 +195,119 @@ public class ConversationListActivity extends AppCompatActivity implements Erxes
         viewpager.setAdapter(tabAdapter);
         tabLayout.setupWithViewPager(viewpager);
         tabLayout.setSelectedTabIndicatorColor(config.colorCode);
+        tabLayout.setTabRippleColorResource(R.color.md_deep_purple_300);
+        tabLayout.setTabMode(TabLayout.MODE_FIXED);
+        tabLayout.setTabTextColors(getResources().getColor(R.color.md_grey_500),
+                getResources().getColor(R.color.md_black_1000));
 
-        if (getIntent().getBooleanExtra("isFromLogin", false)) {
-            init();
+        erxesRequest.getSupporters();
+        erxesRequest.getLead();
+        erxesRequest.getFAQ();
+        init();
+
+        if (config.knowledgeBaseTopic != null && config.knowledgeBaseTopic.categories != null) {
+            tabsContainer.setVisibility(View.VISIBLE);
         }
 
-        supporterView.setAdapter(new SupportAdapter(this));
+        supporterView.setAdapter(new SupportAdapter(this, config));
         LinearLayoutManager supManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         supporterView.setLayoutManager(supManager);
-        Helper.display_configure(this, container, "#66000000");
+
+        SoftKeyboard softKeyboard = new SoftKeyboard(parentLayout, (InputMethodManager) getSystemService(Service.INPUT_METHOD_SERVICE));
+        softKeyboard.setSoftKeyboardCallback(new SoftKeyboard.SoftKeyboardChanged() {
+            @Override
+            public void onSoftKeyboardHide() {
+                ConversationListActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        parentLayout.getLayoutParams().height = size.y * 8 / 10;
+                        parentLayout.requestLayout();
+                    }
+                });
+            }
+
+            @Override
+            public void onSoftKeyboardShow() {
+                ConversationListActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        parentLayout.getLayoutParams().height = WindowManager.LayoutParams.MATCH_PARENT;
+                        parentLayout.requestLayout();
+                    }
+                });
+            }
+        });
+        size = ErxesHelper.display_configure(this, parentLayout, "#66000000");
 
 
-        Intent intent2 = new Intent(this, ListenerService.class);
-        startService(intent2);
-        erxesRequest.getSupporters();
+        fb.getDrawable().setColorFilter(ColorUtils.setAlphaComponent(config.textColorCode, 250), PorterDuff.Mode.SRC_ATOP);
+        tw.getDrawable().setColorFilter(ColorUtils.setAlphaComponent(config.textColorCode, 250), PorterDuff.Mode.SRC_ATOP);
+        yt.getDrawable().setColorFilter(ColorUtils.setAlphaComponent(config.textColorCode, 250), PorterDuff.Mode.SRC_ATOP);
+        this.findViewById(R.id.fbcontainer).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (config.messengerdata.getFacebook() != null && config.messengerdata.getFacebook().contains("http")) {
+                    startFacebook(config.messengerdata.getFacebook());
+                }
+            }
+        });
+        this.findViewById(R.id.twcontainer).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (config.messengerdata.getTwitter() != null && config.messengerdata.getTwitter().contains("http")) {
+                    startTwitter(config.messengerdata.getTwitter());
+                }
+            }
+        });
+        this.findViewById(R.id.ytcontainer).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (config.messengerdata.getYoutube() != null && config.messengerdata.getYoutube().contains("http")) {
+                    startYoutube(config.messengerdata.getYoutube());
+                }
+            }
+        });
 
-        fb.getDrawable().setColorFilter(Color.parseColor("#dad8d8"), PorterDuff.Mode.SRC_ATOP);
-        tw.getDrawable().setColorFilter(Color.parseColor("#dad8d8"), PorterDuff.Mode.SRC_ATOP);
-        yt.getDrawable().setColorFilter(Color.parseColor("#dad8d8"), PorterDuff.Mode.SRC_ATOP);
-        this.findViewById(R.id.fbcontainer).setOnTouchListener(touchListener);
-        this.findViewById(R.id.twcontainer).setOnTouchListener(touchListener);
-        this.findViewById(R.id.ytcontainer).setOnTouchListener(touchListener);
+    }
+
+    public void onKeyboardHide() {
+        ConversationListActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                parentLayout.getLayoutParams().height = size.y * 8 / 10;
+                parentLayout.requestLayout();
+            }
+        });
+    }
+
+    public void onKeyboardShow() {
+        ConversationListActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                parentLayout.getLayoutParams().height = WindowManager.LayoutParams.MATCH_PARENT;
+                parentLayout.requestLayout();
+            }
+        });
+    }
+
+    private void initIcon() {
+        Glide.with(this).load(config.getCancelIcon(config.textColorCode)).into(cancelImageView);
     }
 
     private void init() {
-        if (config.messengerdata != null && config.messengerdata.getKnowledgeBaseTopicId() != null)
-            erxesRequest.getFAQ();
         date.setText(config.now());
+        date.setTextColor(config.textColorCode);
+        title.setTextColor(config.textColorCode);
+        welcometext.setTextColor(config.textColorCode);
+        timeZone.setTextColor(config.textColorCode);
+        timeZone.setText("Timezone: " + config.messengerdata.getTimezone());
+        serverTime.setTextColor(config.textColorCode);
+
         if (config.messengerdata.getMessages() != null && config.messengerdata.getMessages().getGreetings() != null) {
-            title.setText(config.messengerdata.getMessages().getGreetings().getTitle());
-            welcometext.setText(config.messengerdata.getMessages().getGreetings().getMessage());
+            if (!TextUtils.isEmpty(config.messengerdata.getMessages().getGreetings().getTitle()))
+                title.setText(config.messengerdata.getMessages().getGreetings().getTitle());
+            if (!TextUtils.isEmpty(config.messengerdata.getMessages().getGreetings().getMessage()))
+                welcometext.setText(config.messengerdata.getMessages().getGreetings().getMessage());
         }
         if (config.messengerdata.getFacebook() != null && config.messengerdata.getFacebook().startsWith("http"))
             this.findViewById(R.id.fbcontainer).setVisibility(View.VISIBLE);
@@ -238,61 +322,225 @@ public class ConversationListActivity extends AppCompatActivity implements Erxes
         else this.findViewById(R.id.ytcontainer).setVisibility(View.GONE);
     }
 
-    public void start_new_conversation(View v) {
+    @Override
+    protected void onPause() {
+        super.onPause();
+//        erxesRequest.remove(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        config = Config.getInstance(this);
+        config.setActivityConfig(this);
+        serverTime.setText("Server time: " + config.serverTime);
+        erxesRequest = ErxesRequest.getInstance(config);
+        erxesRequest.add(this);
+        if (dataManager.getDataS(DataManager.CUSTOMERID) == null) {
+            startActivity();
+            return;
+        }
+        if (TextUtils.isEmpty(dataManager.getDataS(DataManager.EMAIL)) &&
+                TextUtils.isEmpty(dataManager.getDataS(DataManager.PHONE))) {
+            dataManager.setData(DataManager.CUSTOMERID, null);
+            startActivity();
+            return;
+        }
+        if (config.messengerdata.isShowChat()) {
+            erxesRequest.getConversations();
+        }
+
+        if (config.supporters != null && config.supporters.size() > 0) {
+            if (supporterView != null && supporterView.getAdapter() != null)
+                supporterView.getAdapter().notifyDataSetChanged();
+        }
+        if (tabAdapter != null && config.knowledgeBaseTopic != null && config.knowledgeBaseTopic.categories != null) {
+            tabsContainer.setVisibility(View.VISIBLE);
+            ((FaqFragment) tabAdapter.getItem(1)).init();
+        }
+
+        if (tabAdapter != null && config.formConnect != null) {
+            ((SupportFragment) tabAdapter.getItem(0)).setLead();
+        }
+
         config.conversationId = null;
-        Intent a = new Intent(this, MessageActivity.class);
+
+        dataManager.setData("chatIsGoing", true);
+
+        infoHeader.setBackgroundColor(config.colorCode);
+
+        chatIsGoing = true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        chatIsGoing = false;
+        dataManager.setData("chatIsGoing", false);
+        stopService(intent);
+        disposabledChanged.clear();
+        disposablesChanged.dispose();
+    }
+
+    private void startActivity() {
+        Intent a = new Intent(ConversationListActivity.this, ErxesActivity.class);
         startActivity(a);
+        this.finish();
     }
 
-    public void logout(View v) {
-        finish();
+    public void sendLead() {
+        erxesRequest.sendLead();
     }
 
-    private View.OnTouchListener touchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(final View v, MotionEvent event) {
+    private void initParentConversationChanged() {
+        stopService(config.intent);
+        startService(config.intent);
+        initConversationChanged();
+    }
 
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                ConversationListActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        v.setBackgroundResource(R.drawable.action_background);
+    private void initConversationChanged() {
+        for (int i = 0; i < conversations.size(); i++) {
+            if (disposabledChanged.size() > 0) {
+                boolean have = false;
+                for (int j = 0; j < disposabledChanged.size(); j++) {
+                    if (disposabledChanged.get(j).equals(conversations.get(i).id)) {
+                        have = true;
+                        break;
                     }
-                });
-            } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                ConversationListActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        v.setBackgroundColor(Color.parseColor("#00000000"));
-                        if (v.getId() == R.id.logout) {
-                            logout(null);
-                        } else if (v.getId() == R.id.fbcontainer) {
-                            if (config.messengerdata.getFacebook() != null && config.messengerdata.getFacebook().contains("http")) {
-                                startFacebook(config.messengerdata.getFacebook());
+                }
+                if (!have) {
+                    disposabledChanged.add(conversations.get(i).id);
+                    clientChangedListen(conversations.get(i).id);
+                }
+            } else {
+                disposabledChanged.add(conversations.get(i).id);
+                clientChangedListen(conversations.get(i).id);
+            }
+        }
+    }
+
+    public void clientChangedListen(final String conversationId) {
+        if (runThreadInserted(conversationId))
+            return;
+        if (erxesRequest.apolloClient == null)
+            return;
+        if (conversationId != null) {
+            if (!dataManager.getDataS("host3300").contains("app.erxes.io")) {
+                opensourceChangedCall = erxesRequest.apolloClient
+                        .subscribe(ConversationChangedSubscription.builder()
+                                .id(conversationId)
+                                .build());
+                initChangedConversation();
+            } else {
+                saasChangedCall = erxesRequest.apolloClient
+                        .subscribe(SaasConversationChangedSubscription.builder()
+                                .id(conversationId)
+                                .build());
+                initChangedConversationSaas();
+            }
+        }
+    }
+
+    private void initChangedConversation() {
+        disposablesChanged.add(Rx3Apollo.from(opensourceChangedCall)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(
+                        new DisposableSubscriber<Response<ConversationChangedSubscription.Data>>() {
+                            @Override
+                            public void onNext(Response<ConversationChangedSubscription.Data> dataResponse) {
+                                if (!dataResponse.hasErrors()) {
+                                    if (dataResponse.getData() != null && dataResponse.getData().conversationChanged().type().equalsIgnoreCase("closed")) {
+                                        onConversationChange(dataResponse.getData().conversationChanged().conversationId(),
+                                                dataResponse.getData().conversationChanged().type());
+                                    }
+                                }
                             }
-                        } else if (v.getId() == R.id.twcontainer) {
-                            if (config.messengerdata.getTwitter() != null && config.messengerdata.getTwitter().contains("http")) {
-                                startTwitter(config.messengerdata.getTwitter());
+
+                            @Override
+                            public void onError(Throwable t) {
+                                t.printStackTrace();
                             }
-                        } else if (v.getId() == R.id.ytcontainer) {
-                            if (config.messengerdata.getYoutube() != null && config.messengerdata.getYoutube().contains("http")) {
-                                startYoutube(config.messengerdata.getYoutube());
+
+                            @Override
+                            public void onComplete() {
+
                             }
                         }
-                    }
-                });
+                )
+        );
+    }
+
+    private void initChangedConversationSaas() {
+        disposablesChanged.add(Rx3Apollo.from(saasChangedCall)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(
+                        new DisposableSubscriber<Response<SaasConversationChangedSubscription.Data>>() {
+                            @Override
+                            public void onNext(Response<SaasConversationChangedSubscription.Data> dataResponse) {
+                                if (!dataResponse.hasErrors()) {
+                                    if (dataResponse.getData() != null && dataResponse.getData().conversationChanged().type().equals("closed")) {
+                                        onConversationChange(dataResponse.getData().conversationChanged().conversationId(),
+                                                dataResponse.getData().conversationChanged().type());
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                                t.printStackTrace();
+                            }
+
+                            @Override
+                            public void onComplete() {
+                            }
+                        }
+                )
+        );
+    }
+
+    private void onConversationChange(String conversationId, String status) {
+        if (config.messengerdata.isForceLogoutWhenResolve()) {
+            config.Logout(ConversationListActivity.this);
+        } else {
+            for (int i = 0; i < conversations.size(); i++) {
+                if (conversations.get(i).id.equals(conversationId)) {
+                    conversations.get(i).status = status;
+                    conversations.remove(i);
+                    erxesRequest.notefyAll(ReturntypeUtil.GETCONVERSATION, null, null, null);
+                    break;
+                }
             }
+        }
+    }
+
+    private boolean runThreadInserted(final String conversationId) {
+        if (!config.isNetworkConnected()) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    clientChangedListen(conversationId);
+                }
+            }).start();
             return true;
         }
-    };
+        return false;
+    }
 
-    private void startYoutube(String url) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+
+    private void startYoutube(String s) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(s));
         startActivity(intent);
     }
 
-    private void startFacebook(String facebookUrl) {
-
+    private void startFacebook(String s) {
+        String mUri = s;
         try {
             Uri uri;
 
@@ -301,32 +549,120 @@ public class ConversationListActivity extends AppCompatActivity implements Erxes
                     .versionCode;
 
             if (versionCode >= 3002850) {
-                facebookUrl = facebookUrl.toLowerCase().replace("www.", "m.");
-                if (!facebookUrl.startsWith("https")) {
-                    facebookUrl = "https://" + facebookUrl;
+                mUri = mUri.toLowerCase().replace("www.", "m.");
+                if (!mUri.startsWith("https")) {
+                    mUri = "https://" + mUri;
                 }
-                uri = Uri.parse("fb://facewebmodal/f?href=" + facebookUrl);
+                uri = Uri.parse("fb://facewebmodal/f?href=" + mUri);
             } else {
-                String pageID = facebookUrl.substring(facebookUrl.lastIndexOf("/"));
+                String pageID = mUri.substring(mUri.lastIndexOf("/"));
 
                 uri = Uri.parse("fb://page" + pageID);
             }
             startActivity(new Intent(Intent.ACTION_VIEW, uri));
         } catch (Throwable e) {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(facebookUrl)));
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mUri)));
         }
     }
 
-    private void startTwitter(String url) {
-        if (url.startsWith("https://twitter.com/")) {
-            url = url.replace("https://twitter.com/", "");
+    private void startTwitter(String s) {
+        String mUri = s;
+        if (mUri.startsWith("https://twitter.com/")) {
+            mUri = mUri.replace("https://twitter.com/", "");
         }
-        String Username = url;
+        String uName = mUri;
         try {
             getPackageManager().getPackageInfo("com.twitter.android", 0);
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("twitter://user?screen_name=" + Username)));
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("twitter://user?screen_name=" + uName)));
         } catch (Exception e) {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/#!/" + Username)));
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/#!/" + uName)));
         }
+    }
+
+    private View formView;
+
+    public void onBrowseLead(View view) {
+        formView = view;
+        Intent chooseFile;
+        Intent intent;
+        chooseFile = new Intent(Intent.ACTION_PICK);
+        chooseFile.setType("*/*");
+        chooseFile.setAction(Intent.ACTION_GET_CONTENT);
+        intent = Intent.createChooser(chooseFile, "Choose a file");
+        startActivityForResult(intent, 555);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 555 && resultCode == Activity.RESULT_OK) {
+            Uri returnUri = data.getData();
+            FileInfo fileInfo = new FileInfo(ConversationListActivity.this, returnUri);
+            if (returnUri != null && "content".equals(returnUri.getScheme())) {
+                fileInfo.init();
+            } else {
+                if (returnUri != null) {
+                    fileInfo.filepath = returnUri.getPath();
+                }
+            }
+
+            File file = fileInfo.if_not_exist_create_file();
+            if (file != null) {
+                uploadFormFile(file, fileInfo, formView);
+            } else {
+                Snackbar.make(container, R.string.Failed + "Permission denied", Snackbar.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void uploadFormFile(File file, FileInfo fileInfo, View textView) {
+        Toast.makeText(ConversationListActivity.this, "Preparing file...", Toast.LENGTH_SHORT).show();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .writeTimeout(10, TimeUnit.MINUTES)
+                .readTimeout(10, TimeUnit.MINUTES).build();
+
+        RequestBody formBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", fileInfo.name, RequestBody.create(MediaType.parse(fileInfo.type), file))
+                .addFormDataPart("name", fileInfo.name)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(config.hostUpload)
+                .post(formBody).build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                ConversationListActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(ConversationListActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, okhttp3.Response response) throws IOException {
+                ConversationListActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (response.isSuccessful()) {
+                            if (response.body() != null) {
+                                try {
+                                    ((SupportFragment) tabAdapter.getItem(0)).values[(int) textView.getTag()] = response.body().string();
+                                    ((TextView) textView).setTextColor(getResources().getColor(R.color.md_black_1000));
+                                    ((TextView) textView).setText(file.getName());
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(ConversationListActivity.this, "File upload " + getString(R.string.Failed), Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        } else {
+                            Toast.makeText(ConversationListActivity.this, "File upload " + getString(R.string.Failed), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        });
     }
 }

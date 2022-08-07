@@ -4,22 +4,23 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.net.Uri;
-import android.support.design.widget.Snackbar;
-import android.support.v4.widget.CircularProgressDrawable;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.swiperefreshlayout.widget.CircularProgressDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.newmedia.erxes.basic.type.AttachmentInput;
+import com.bumptech.glide.Glide;
+import com.erxes.io.opens.type.AttachmentInput;
 import com.newmedia.erxeslibrary.configuration.Config;
-import com.newmedia.erxeslibrary.configuration.ProgressRequestBody;
-import com.newmedia.erxeslibrary.FileInfo;
+import com.newmedia.erxeslibrary.connection.helper.ProgressRequestBody;
+import com.newmedia.erxeslibrary.helper.FileInfo;
 import com.newmedia.erxeslibrary.R;
-
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,28 +39,30 @@ import okhttp3.Response;
 
 public class GFilePart implements ProgressRequestBody.Listener {
     static final String TAG = GFilePart.class.getName();
-    File file;
+    private File file;
     private FileInfo fileInfo;
-    private Config config;
-    private MessageActivity AC;
-    private ProgressBar progressBar;
-    private ViewGroup container,filelist,button_chatbox_send;
-    private CircularProgressDrawable senddrawable;
-    private List<AttachmentInput> uploadJsons = new ArrayList<>();
+    private final Config config;
+    private final MessageActivity messageActivity;
+    private final ProgressBar progressBar;
+    private final ViewGroup container;
+    private final ViewGroup filelist;
+    private final ViewGroup buttonChatboxSend;
+    private final CircularProgressDrawable senddrawable;
+    private final List<AttachmentInput> uploadJsons = new ArrayList<>();
 
-    public GFilePart(Config config,MessageActivity messageActivity) {
-        this.AC = messageActivity;
+    GFilePart(Config config, MessageActivity messageActivity) {
+        this.messageActivity = messageActivity;
         this.config = config;
-        senddrawable = new CircularProgressDrawable(AC);
+        senddrawable = new CircularProgressDrawable(this.messageActivity);
         senddrawable.setStrokeWidth(  5f);
         senddrawable.setCenterRadius(  30f);
 
-        progressBar = AC.findViewById(R.id.simpleProgressBar);
+        progressBar = this.messageActivity.findViewById(R.id.simpleProgressBar);
         progressBar.getProgressDrawable().mutate().setColorFilter(config.colorCode, PorterDuff.Mode.SRC_IN);
         progressBar.setMax(100);
-        button_chatbox_send = AC.findViewById(R.id.button_chatbox_send);
-        filelist = AC.findViewById(R.id.filelist);
-        container = AC.findViewById(R.id.container);
+        buttonChatboxSend = this.messageActivity.findViewById(R.id.button_chatbox_send);
+        filelist = this.messageActivity.findViewById(R.id.filelist);
+        container = this.messageActivity.findViewById(R.id.container);
     }
 
     public void setFile(File file) {
@@ -71,8 +74,9 @@ public class GFilePart implements ProgressRequestBody.Listener {
     }
 
     public void test() {
-        OkHttpClient client = new OkHttpClient.Builder().writeTimeout(2,TimeUnit.MINUTES)
-                .readTimeout(2,TimeUnit.MINUTES).build();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .writeTimeout(10,TimeUnit.MINUTES)
+                .readTimeout(10,TimeUnit.MINUTES).build();
 
         RequestBody formBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -80,10 +84,8 @@ public class GFilePart implements ProgressRequestBody.Listener {
                 .addFormDataPart("name", fileInfo.name )
                 .build();
 
-        ;
         Request request = new Request.Builder()
-                .url(config.HOST_UPLOAD)
-                .addHeader("Authorization","")
+                .url(config.hostUpload)
                 .post(new ProgressRequestBody(formBody,this)).build();
 
 
@@ -91,17 +93,15 @@ public class GFilePart implements ProgressRequestBody.Listener {
 
             @Override
             public void onFailure(Call call, IOException e) {
-                Log.i("erxes_api", "failed" );
-
                 e.printStackTrace();
-                AC.runOnUiThread(new Runnable() {
+                messageActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         progressBar.setVisibility(View.GONE);
-                        button_chatbox_send.setClickable(true);
+                        buttonChatboxSend.setClickable(true);
                         senddrawable.stop();
                         progressBar.setProgress(0);
-                        Snackbar.make(container, R.string.cantconnect, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(container, R.string.Failed, Snackbar.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -109,51 +109,65 @@ public class GFilePart implements ProgressRequestBody.Listener {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if(response.isSuccessful()) {
-
-                    fileInfo.filepath = response.body().string();
+                    if (response.body() != null) {
+                        fileInfo.filepath = response.body().string();
+                    }
                     uploadJsons.add(fileInfo.get());
-                    Log.i("erxes_api", "upload complete");
-                    AC.runOnUiThread(new Runnable() {
+                    messageActivity.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            LayoutInflater layoutInflater = LayoutInflater.from(AC);
+                            LayoutInflater layoutInflater = LayoutInflater.from(messageActivity);
                             View view = layoutInflater.inflate(R.layout.upload_file, filelist, false);
+                            View spaceView = view.findViewById(R.id.spaceView);
+                            LinearLayout itemBackground = view.findViewById(R.id.itemBackground);
                             TextView filename = view.findViewById(R.id.filename);
-                            view.findViewById(R.id.remove).setTag(uploadJsons.get(uploadJsons.size()-1));
-                            view.findViewById(R.id.remove).setOnClickListener(remove_fun);
-                            filename.setText(""+fileInfo.name);
+                            ImageView imageView = view.findViewById(R.id.remove);
+                            ImageView icon = view.findViewById(R.id.image_input);
+                            itemBackground.setBackgroundColor(config.colorCode);
+                            spaceView.setBackgroundColor(config.textColorCode);
+                            filename.setTextColor(config.textColorCode);
+                            icon.getDrawable()
+                                    .setColorFilter(
+                                            config.textColorCode,
+                                            PorterDuff.Mode.SRC_ATOP
+                                    );
+                            Glide.with(config.context)
+                                    .load(config.getCancelIcon(config.textColorCode))
+                                    .into(imageView);
+                            imageView.setTag(uploadJsons.get(uploadJsons.size()-1));
+                            imageView.setOnClickListener(removeFun);
+                            filename.setText("" + fileInfo.name);
                             filelist.addView(view);
                             progressBar.setProgress(0);
                         }
                     });
                 }
                 else{
-                    AC.runOnUiThread(new Runnable() {
+                    messageActivity.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             progressBar.setProgress(0);
-                            Snackbar.make(container, R.string.serverror, Snackbar.LENGTH_SHORT).show();
+                            Snackbar.make(container, R.string.Failed, Snackbar.LENGTH_SHORT).show();
                         }
                     });
                 }
-                AC.runOnUiThread(new Runnable() {
+                messageActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         senddrawable.stop();
-                        button_chatbox_send.setClickable(true);
+                        buttonChatboxSend.setClickable(true);
                         progressBar.setVisibility(View.GONE);
                     }
                 });
 
-                Log.i("erxes_api", "upload false");
             }
         });
     }
-    private View.OnClickListener remove_fun = new View.OnClickListener() {
+    private final View.OnClickListener removeFun = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
 
-            JSONObject tag = (JSONObject ) v.getTag();
+            AttachmentInput tag = (AttachmentInput) v.getTag();
             int index = uploadJsons.indexOf(tag);
             Log.d("myfo","index "+index);
             uploadJsons.remove(index);
@@ -163,47 +177,45 @@ public class GFilePart implements ProgressRequestBody.Listener {
     };
     public void upload()  {
         if(!config.isNetworkConnected()) {
-            Snackbar.make(container,R.string.cantconnect,Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(container,R.string.Failed,Snackbar.LENGTH_SHORT).show();
             return;
         }
         senddrawable.start();
-        button_chatbox_send.setBackgroundDrawable(senddrawable);
+        buttonChatboxSend.setBackground(senddrawable);
         progressBar.setVisibility(View.VISIBLE);
-        button_chatbox_send.setClickable(false);
+        buttonChatboxSend.setClickable(false);
         test();
     }
-    public void end_of(){
+    void end_of(){
         uploadJsons.clear();
         filelist.removeAllViews();
     }
     public List<AttachmentInput>  get(){
         return (uploadJsons.size() > 0) ? uploadJsons : null;
     }
-    public void ActivityResult(int requestCode, int resultCode, Intent resultData){
+    void ActivityResult(int requestCode, int resultCode, Intent resultData){
         if (requestCode == 444 && resultCode == Activity.RESULT_OK) {
 
             Uri returnUri = resultData.getData();
 
-            fileInfo = new FileInfo(AC,returnUri);
+            fileInfo = new FileInfo(messageActivity,returnUri);
 
             if (returnUri != null && "content".equals(returnUri.getScheme())) {
                 fileInfo.init();
             } else {
-                fileInfo.filepath = returnUri.getPath();
+                if (returnUri != null) {
+                    fileInfo.filepath = returnUri.getPath();
+                }
             }
 
             file = fileInfo.if_not_exist_create_file();
             if(file != null){
-                Log.i("erxes_api", "result1");
                 upload();
             }
             else{
-                Log.i("erxes_api", "result3");
-                Snackbar.make(container, R.string.fileerror, Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(container, R.string.Failed, Snackbar.LENGTH_SHORT).show();
             }
         }
-        Log.i("erxes_api", "result2"+requestCode+" ?"+resultCode+" "+Activity.RESULT_OK);
-
     }
 
     File getFile() {
